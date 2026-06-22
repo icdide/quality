@@ -159,7 +159,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
         <p style="font-size:15px;font-weight:700;color:#0a2e6e;margin-bottom:4px;" id="lbl-upload-title"></p>
         <p style="font-size:12px;color:#1565c0;" id="lbl-upload-sub"></p>
       </div>
-      <input type="file" id="fileInput" accept=".xlsx,.csv,.xls" style="display:none;" onchange="handleFile(this)">
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFile(this)">
       <div class="file-row">
         <i class="ti ti-file-spreadsheet" style="font-size:24px;color:#1255b5;"></i>
         <div class="file-info">
@@ -210,6 +210,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
     </button>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <script>
 var T = {
@@ -268,24 +269,36 @@ function initLabels() {
 }
 
 var DB = [];
-var CSV_URL = 'https://raw.githubusercontent.com/icdide/quality/main/data.csv';
+var XLSX_URL = 'https://raw.githubusercontent.com/icdide/quality/main/data.xlsx';
 
 function loadCSV() {
+  loadXLSX();
+}
+
+function loadXLSX() {
   var statusEl = document.getElementById('loadStatus');
   if(statusEl) statusEl.textContent = '데이터 불러오는 중...';
-  fetch(CSV_URL + '?t=' + Date.now())
-    .then(function(r){ return r.text(); })
-    .then(function(text){
-      var lines = text.trim().split('\n').filter(function(l){return l.trim();});
+  fetch(XLSX_URL + '?t=' + Date.now())
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.arrayBuffer();
+    })
+    .then(function(buf){
+      var wb = XLSX.read(buf, {type:'array', cellText:false, cellDates:true, raw:false});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
       var newDB = [];
-      for(var i=1; i<lines.length; i++){
-        var parts = lines[i].split(',');
-        if(parts.length >= 3 && parts[0].trim()){
-          newDB.push({
-            code: parts[0].trim(),
-            name: parts[1] ? parts[1].trim() : '',
-            url: parts.slice(2).join(',').trim()
-          });
+      for(var i=1; i<rows.length; i++){
+        var row = rows[i];
+        var code = (row[0]||'').toString().trim();
+        var name = (row[1]||'').toString().trim();
+        var url  = (row[2]||'').toString().trim();
+        if(code && url){
+          // 지수표현(1.23E+13) 방지: 이미 raw:false로 읽으므로 숫자형이면 정수변환
+          if(/^\d+\.?\d*[eE][+\-]?\d+$/.test(code)){
+            try{ code = BigInt(Math.round(parseFloat(code))).toString(); }catch(e){}
+          }
+          newDB.push({code:code, name:name, url:url});
         }
       }
       if(newDB.length > 0){
@@ -297,11 +310,11 @@ function loadCSV() {
         if(statusEl) statusEl.textContent = '✓ ' + DB.length + '개 항목 로드 완료';
         renderList(DB);
       } else {
-        if(statusEl) statusEl.textContent = 'CSV 파일이 비어있습니다.';
+        if(statusEl) statusEl.textContent = '데이터가 비어있습니다. 파일을 확인해주세요.';
       }
     })
     .catch(function(e){
-      if(statusEl) statusEl.textContent = 'CSV 로드 실패 - 파일을 확인해주세요.';
+      if(statusEl) statusEl.textContent = '로드 실패: ' + e.message;
       console.error(e);
     });
 }
