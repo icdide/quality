@@ -168,6 +168,16 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
         </div>
         <span class="badge badge-green" id="lbl-active"></span>
       </div>
+      <div style="margin-top:10px;padding:10px 12px;background:#e3f2fd;border-radius:8px;border:1px solid #90caf9;display:flex;align-items:center;gap:8px;">
+        <i class="ti ti-cloud-download" style="font-size:16px;color:#1255b5;flex-shrink:0;"></i>
+        <span style="font-size:12px;color:#0d47a1;flex:1;" id="loadStatus">데이터 불러오는 중...</span>
+        <button onclick="loadCSV()" style="padding:5px 10px;background:#1255b5;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">새로고침</button>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:#e3f2fd;border-radius:8px;border:1px solid #90caf9;display:flex;align-items:center;gap:8px;">
+        <i class="ti ti-cloud-download" style="font-size:16px;color:#1255b5;flex-shrink:0;"></i>
+        <span style="font-size:12px;color:#0d47a1;" id="loadStatus"></span>
+        <button onclick="loadCSV()" style="margin-left:auto;padding:5px 10px;background:#1255b5;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">새로고침</button>
+      </div>
     </div>
     <div id="tab-list" class="section hidden">
       <div class="search-wrap">
@@ -257,10 +267,44 @@ function initLabels() {
   document.getElementById('lbl-cancel').textContent = T.cancel;
 }
 
-var DB = [
-  { code: '4000196031150', name: 'HILTI\ube57\uac01\uc678\uacbd\ub4dc\ub808\uc2f1', url: 'https://ehwadia-my.sharepoint.com/:b:/g/personal/icdide_ehwadia_onmicrosoft_com/IQAf2d-0inNzSLBpZ6iuHzu9AVbFeZj96w8VHnVJ5EXimGM?e=UeZp2K' },
-  { code: '8801230160609', name: '\uc2e4\ud06c\uc2a4\ud06c\ub9b0', url: 'https://ehwadia-my.sharepoint.com/:b:/g/personal/icdide_ehwadia_onmicrosoft_com/IQDyPnOd3EVqT68K7o7gvGNqARrYcpvjmsACEIuzp0Pkucc?e=0IBKW0' }
-];
+var DB = [];
+var CSV_URL = 'https://raw.githubusercontent.com/icdide/quality/main/data.csv';
+
+function loadCSV() {
+  var statusEl = document.getElementById('loadStatus');
+  if(statusEl) statusEl.textContent = '데이터 불러오는 중...';
+  fetch(CSV_URL + '?t=' + Date.now())
+    .then(function(r){ return r.text(); })
+    .then(function(text){
+      var lines = text.trim().split('\n').filter(function(l){return l.trim();});
+      var newDB = [];
+      for(var i=1; i<lines.length; i++){
+        var parts = lines[i].split(',');
+        if(parts.length >= 3 && parts[0].trim()){
+          newDB.push({
+            code: parts[0].trim(),
+            name: parts[1] ? parts[1].trim() : '',
+            url: parts.slice(2).join(',').trim()
+          });
+        }
+      }
+      if(newDB.length > 0){
+        DB = newDB;
+        var metaEl = document.getElementById('fileMeta');
+        var countEl = document.getElementById('docCount');
+        if(metaEl) metaEl.textContent = DB.length + '개 항목 · 활성';
+        if(countEl) countEl.textContent = '전체 ' + DB.length + '개';
+        if(statusEl) statusEl.textContent = '✓ ' + DB.length + '개 항목 로드 완료';
+        renderList(DB);
+      } else {
+        if(statusEl) statusEl.textContent = 'CSV 파일이 비어있습니다.';
+      }
+    })
+    .catch(function(e){
+      if(statusEl) statusEl.textContent = 'CSV 로드 실패 - 파일을 확인해주세요.';
+      console.error(e);
+    });
+}
 
 var codeReader = null;
 var streamActive = false;
@@ -323,12 +367,29 @@ function startCamera(){
 function waitForZXing(stream){
   if(typeof ZXing==='undefined'){setTimeout(function(){waitForZXing(stream);},300);return;}
   try{
-    codeReader=new ZXing.BrowserMultiFormatReader();
+    var hints = new Map();
+    var formats = [
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.DATA_MATRIX,
+      ZXing.BarcodeFormat.CODABAR,
+      ZXing.BarcodeFormat.CODE_93
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    codeReader = new ZXing.BrowserMultiFormatReader(hints);
     var v=document.getElementById('videoEl');
     codeReader.decodeFromStream(stream,v,function(result,err){
       if(result&&streamActive){
         streamActive=false;
         var code=result.getText();
+        var fmt=result.getBarcodeFormat?result.getBarcodeFormat().toString():'';
         stopCamera();
         document.getElementById('manualCode').value=code;
         searchCode(code);
@@ -399,7 +460,7 @@ function goScan(code){
 }
 
 initLabels();
-renderList(DB);
+loadCSV();
 </script>
 </body>
 </html>
