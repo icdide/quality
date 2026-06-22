@@ -2,89 +2,56 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="EHWA Q.A">
-<title>EHWA Q.A Cloud Bar-code Mapping</title>
+<title>EHWA Q.A Barcode</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;overscroll-behavior:none;}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f4f8;overscroll-behavior:none;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,0.12);}
-
-/* Hero */
-.hero{
-  position:relative;
-  background:linear-gradient(145deg,#0a2e6e 0%,#1255b5 45%,#1976d2 70%,#64b5f6 100%);
-  padding:28px 20px 30px;
-  text-align:center;
-  overflow:hidden;
-  flex-shrink:0;
-}
-.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 75% 25%,rgba(255,255,255,0.18) 0%,transparent 55%),radial-gradient(ellipse at 15% 75%,rgba(100,180,255,0.18) 0%,transparent 50%);}
+.hero{position:relative;background:linear-gradient(145deg,#0a2e6e 0%,#1255b5 45%,#1976d2 70%,#64b5f6 100%);padding:28px 20px 30px;text-align:center;overflow:hidden;flex-shrink:0;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 75% 25%,rgba(255,255,255,0.18) 0%,transparent 55%);}
 .cloud{position:absolute;background:rgba(255,255,255,0.15);border-radius:60px;}
 .cloud1{width:130px;height:32px;top:18%;left:-15px;filter:blur(6px);}
 .cloud2{width:100px;height:26px;top:55%;right:-5px;filter:blur(5px);}
 .cloud3{width:80px;height:20px;top:75%;left:55%;filter:blur(4px);}
-.cloud4{width:60px;height:16px;top:35%;left:65%;filter:blur(3px);}
 .hero-inner{position:relative;z-index:2;}
-.logo-wrap{display:inline-flex;align-items:center;gap:6px;margin-bottom:5px;}
 .logo-text{font-size:32px;font-weight:800;color:#fff;letter-spacing:3px;text-shadow:0 2px 12px rgba(0,0,0,0.35);}
-.logo-r{font-size:13px;vertical-align:super;color:rgba(255,255,255,0.9);}
-.logo-sub{font-size:10px;color:rgba(255,255,255,0.8);letter-spacing:3.5px;font-weight:500;text-transform:uppercase;margin-bottom:14px;}
-.hero-title{font-size:19px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.4);letter-spacing:0.3px;line-height:1.3;margin-bottom:5px;}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.8);letter-spacing:3.5px;font-weight:500;margin-bottom:14px;margin-top:4px;}
+.hero-title{font-size:19px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.4);margin-bottom:5px;}
 .hero-since{font-size:10px;color:rgba(255,255,255,0.65);letter-spacing:2.5px;}
-
-/* Tabs */
 .tab-bar{display:flex;border-bottom:2px solid #1255b5;background:#fff;flex-shrink:0;}
-.tab{flex:1;padding:11px 4px;text-align:center;font-size:12px;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.2s;font-weight:500;}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:13px;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:500;}
 .tab.active{color:#1255b5;border-bottom:3px solid #1255b5;font-weight:700;}
 .tab i{font-size:14px;vertical-align:-2px;margin-right:3px;}
-
-/* Content */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .section{padding:16px;}
 .section.hidden{display:none;}
-
-/* Scan area */
-.scan-area{
-  border-radius:16px;padding:24px 16px;text-align:center;margin-bottom:14px;
-  background:linear-gradient(145deg,#e3f2fd,#bbdefb);
-  border:1px solid #90caf9;position:relative;overflow:hidden;
-}
-.scan-area::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(18,85,181,0.07);}
+.scan-area{border-radius:16px;padding:24px 16px;text-align:center;margin-bottom:14px;background:linear-gradient(145deg,#e3f2fd,#bbdefb);border:1px solid #90caf9;position:relative;overflow:hidden;}
 .scan-frame{width:150px;height:150px;margin:0 auto 14px;position:relative;}
 .corner{position:absolute;width:28px;height:28px;border-color:#1255b5;border-style:solid;}
-.c-tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:3px 0 0 0;}
-.c-tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 3px 0 0;}
-.c-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 3px;}
-.c-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 3px 0;}
+.c-tl{top:0;left:0;border-width:3px 0 0 3px;}
+.c-tr{top:0;right:0;border-width:3px 3px 0 0;}
+.c-bl{bottom:0;left:0;border-width:0 0 3px 3px;}
+.c-br{bottom:0;right:0;border-width:0 3px 3px 0;}
 .frame-inner{position:absolute;inset:22px;display:flex;align-items:center;justify-content:center;}
-.scan-line{position:absolute;left:6px;right:6px;height:2px;background:linear-gradient(to right,transparent,#1255b5 30%,#1976d2,#1255b5 70%,transparent);animation:sl 2s ease-in-out infinite;box-shadow:0 0 6px rgba(18,85,181,0.5);}
+.scan-line{position:absolute;left:6px;right:6px;height:2px;background:linear-gradient(to right,transparent,#1255b5 30%,#1976d2,#1255b5 70%,transparent);animation:sl 2s ease-in-out infinite;}
 @keyframes sl{0%,100%{top:8px;opacity:0.4;}50%{top:136px;opacity:1;}}
-.scan-lbl{font-size:15px;font-weight:700;color:#0a2e6e;margin-bottom:3px;}
-.scan-sub{font-size:12px;color:#1565c0;}
-
-/* Buttons */
-.btn{width:100%;padding:13px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;border:none;margin-bottom:10px;transition:transform 0.1s,opacity 0.15s;-webkit-appearance:none;}
-.btn:active{transform:scale(0.98);opacity:0.9;}
-.btn-primary{background:linear-gradient(135deg,#0d47a1,#1565c0,#1976d2);color:#fff;box-shadow:0 4px 14px rgba(18,85,181,0.35);}
-.btn-green{background:linear-gradient(135deg,#1B6B4A,#1D9E75);color:#fff;box-shadow:0 4px 14px rgba(29,158,117,0.35);}
+.btn{width:100%;padding:13px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;border:none;margin-bottom:10px;-webkit-appearance:none;}
+.btn-primary{background:linear-gradient(135deg,#0d47a1,#1565c0,#1976d2);color:#fff;}
+.btn-green{background:linear-gradient(135deg,#1B6B4A,#1D9E75);color:#fff;}
 .btn-outline{background:#fff;color:#1255b5;border:1.5px solid #90caf9;}
-
-/* Manual input */
 .divider{font-size:11px;color:#aaa;text-align:center;margin:10px 0;position:relative;}
 .divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:0.5px;background:#dde;}
 .divider::before{left:0;}.divider::after{right:0;}
 .manual-row{display:flex;gap:8px;margin-bottom:14px;}
-.manual-row input{flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid #90caf9;font-size:14px;background:#f5faff;color:#111;outline:none;transition:border-color 0.2s;}
-.manual-row input:focus{border-color:#1255b5;background:#fff;}
-.manual-row button{padding:12px 16px;border-radius:10px;background:linear-gradient(135deg,#1255b5,#1976d2);color:#fff;border:none;cursor:pointer;font-size:15px;transition:opacity 0.15s;}
-.manual-row button:active{opacity:0.85;}
-
-/* Result */
+.manual-row input{flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid #90caf9;font-size:14px;background:#f5faff;color:#111;outline:none;font-family:inherit;}
+.manual-row button{padding:12px 16px;border-radius:10px;background:linear-gradient(135deg,#1255b5,#1976d2);color:#fff;border:none;cursor:pointer;font-size:15px;}
 .result-card{border-radius:14px;padding:14px;margin-top:2px;display:none;}
 .result-card.found{background:#e8f5e9;border:1px solid #a5d6a7;}
 .result-card.notfound{background:#ffebee;border:1px solid #ef9a9a;}
@@ -97,41 +64,28 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .notfound .result-status{color:#c62828;}
 .result-detail{background:rgba(255,255,255,0.65);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
 .result-row{display:flex;align-items:flex-start;margin-bottom:5px;}
-.result-row:last-child{margin-bottom:0;}
 .rkey{font-size:11px;color:#888;width:60px;flex-shrink:0;padding-top:2px;}
-.rval{font-size:13px;font-weight:600;color:#111;word-break:break-all;line-height:1.4;}
+.rval{font-size:13px;font-weight:600;color:#111;word-break:break-all;}
 .rval.highlight{color:#1255b5;font-size:14px;}
-
-/* Upload */
-.info-box{background:#e3f2fd;border-radius:10px;padding:13px;margin-bottom:13px;font-size:12px;color:#0d47a1;line-height:1.8;border:1px solid #90caf9;}
-.info-box strong{display:block;margin-bottom:4px;font-size:13px;}
-.upload-zone{border:2px dashed #90caf9;border-radius:14px;padding:26px 16px;text-align:center;background:#f0f8ff;margin-bottom:13px;cursor:pointer;transition:background 0.2s;}
-.upload-zone:active{background:#ddeeff;}
+.info-box{background:#e3f2fd;border-radius:10px;padding:13px;margin-bottom:13px;font-size:13px;color:#0d47a1;line-height:1.8;border:1px solid #90caf9;}
+.upload-zone{border:2px dashed #90caf9;border-radius:14px;padding:26px 16px;text-align:center;background:#f0f8ff;margin-bottom:13px;cursor:pointer;}
 .file-row{display:flex;align-items:center;gap:11px;padding:12px 14px;background:#f5faff;border-radius:10px;border:1px solid #90caf9;}
 .file-info{flex:1;}
 .file-name{font-size:13px;font-weight:600;color:#111;}
 .file-meta{font-size:11px;color:#888;margin-top:2px;}
 .badge{font-size:10px;padding:3px 9px;border-radius:99px;font-weight:600;}
 .badge-green{background:#2e7d32;color:#fff;}
-.badge-blue{background:#1255b5;color:#fff;}
-
-/* List */
 .search-wrap{position:relative;margin-bottom:12px;}
 .search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:#90caf9;}
-.search-input{width:100%;padding:11px 12px 11px 36px;border-radius:10px;border:1.5px solid #90caf9;font-size:14px;background:#f5faff;color:#111;outline:none;transition:border-color 0.2s;}
-.search-input:focus{border-color:#1255b5;background:#fff;}
+.search-input{width:100%;padding:11px 12px 11px 36px;border-radius:10px;border:1.5px solid #90caf9;font-size:14px;background:#f5faff;color:#111;outline:none;font-family:inherit;}
 .doc-count{font-size:12px;color:#888;margin-bottom:10px;}
-.doc-row{display:flex;align-items:center;gap:11px;padding:13px 14px;background:#fff;border-radius:12px;border:1px solid #e3f2fd;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;}
-.doc-row:active{border-color:#90caf9;box-shadow:0 2px 8px rgba(18,85,181,0.1);}
+.doc-row{display:flex;align-items:center;gap:11px;padding:13px 14px;background:#fff;border-radius:12px;border:1px solid #e3f2fd;margin-bottom:8px;cursor:pointer;}
 .doc-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#ffebee,#ffcdd2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .doc-icon i{font-size:22px;color:#c62828;}
 .doc-info{flex:1;min-width:0;}
 .doc-name{font-size:14px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .doc-code{font-size:11px;color:#888;margin-top:2px;font-family:monospace;}
-.doc-arrow{color:#90caf9;font-size:16px;flex-shrink:0;}
 .empty{text-align:center;padding:32px 20px;color:#aaa;font-size:14px;}
-
-/* Camera view */
 #cameraSection{display:none;position:fixed;inset:0;background:#000;z-index:100;flex-direction:column;}
 #cameraSection.active{display:flex;}
 #videoEl{width:100%;flex:1;object-fit:cover;}
@@ -145,68 +99,50 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .cam-corner.tr{top:0;right:0;border-width:3px 3px 0 0;}
 .cam-corner.bl{bottom:0;left:0;border-width:0 0 3px 3px;}
 .cam-corner.br{bottom:0;right:0;border-width:0 3px 3px 0;}
-.cam-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,100,100,0.8),transparent);animation:csl 2s ease-in-out infinite;}
+.cam-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,80,80,0.9),transparent);animation:csl 2s ease-in-out infinite;}
 @keyframes csl{0%,100%{top:0;opacity:0.5;}50%{top:218px;opacity:1;}}
-.cam-hint{position:absolute;bottom:80px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.8);font-size:13px;}
+.cam-hint{position:absolute;bottom:100px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.85);font-size:13px;}
 .cam-bottom{padding:20px;background:rgba(0,0,0,0.7);flex-shrink:0;}
 </style>
 </head>
 <body>
-
 <div class="app">
-  <!-- Hero -->
   <div class="hero">
     <div class="cloud cloud1"></div>
     <div class="cloud cloud2"></div>
     <div class="cloud cloud3"></div>
-    <div class="cloud cloud4"></div>
     <div class="hero-inner">
-      <div class="logo-wrap">
-        <span class="logo-text">EHWA<span class="logo-r">®</span></span>
-      </div>
-      <div class="logo-sub">QUALITY ASSURANCE Dep't</div>
+      <div class="logo-text">EHWA&#174;</div>
+      <div class="logo-sub">QUALITY ASSURANCE Dep&#x27;t</div>
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
     </div>
   </div>
-
-  <!-- Tabs -->
   <div class="tab-bar">
-    <div class="tab active" onclick="showTab('scan',this)"><i class="ti ti-scan"></i>스캔</div>
-    <div class="tab" onclick="showTab('upload',this)"><i class="ti ti-upload"></i>업로드</div>
-    <div class="tab" onclick="showTab('list',this)"><i class="ti ti-list"></i>목록</div>
+    <div class="tab active" id="tab-btn-scan" onclick="showTab('scan',this)"><i class="ti ti-scan"></i><span id="lbl-scan"></span></div>
+    <div class="tab" id="tab-btn-upload" onclick="showTab('upload',this)"><i class="ti ti-upload"></i><span id="lbl-upload"></span></div>
+    <div class="tab" id="tab-btn-list" onclick="showTab('list',this)"><i class="ti ti-list"></i><span id="lbl-list"></span></div>
   </div>
-
-  <!-- Content -->
   <div class="content">
-
-    <!-- Scan -->
     <div id="tab-scan" class="section">
       <div class="scan-area">
         <div class="scan-frame">
           <div class="corner c-tl"></div><div class="corner c-tr"></div>
           <div class="corner c-bl"></div><div class="corner c-br"></div>
-          <div class="frame-inner">
-            <i class="ti ti-barcode" style="font-size:70px;color:rgba(18,85,181,0.2);"></i>
-          </div>
+          <div class="frame-inner"><i class="ti ti-barcode" style="font-size:70px;color:rgba(18,85,181,0.2);"></i></div>
           <div class="scan-line"></div>
         </div>
-        <p class="scan-lbl">바코드 / QR 스캔</p>
-        <p class="scan-sub">카메라로 코드를 비춰주세요</p>
+        <p class="scan-lbl" id="lbl-scan-title"></p>
+        <p style="font-size:12px;color:#1565c0;" id="lbl-scan-sub"></p>
       </div>
-
       <button class="btn btn-primary" onclick="startCamera()">
-        <i class="ti ti-camera"></i> 카메라로 스캔
+        <i class="ti ti-camera"></i> <span id="lbl-cam-btn"></span>
       </button>
-
-      <div class="divider">또는 직접 입력</div>
-
+      <div class="divider"><span id="lbl-or"></span></div>
       <div class="manual-row">
-        <input type="text" id="manualCode" placeholder="바코드 번호 입력..." inputmode="numeric"
-          onkeydown="if(event.key==='Enter')searchCode()" />
+        <input type="text" id="manualCode" inputmode="numeric" onkeydown="if(event.key==='Enter')searchCode()" />
         <button onclick="searchCode()"><i class="ti ti-search"></i></button>
       </div>
-
       <div class="result-card" id="resultCard">
         <div class="result-top">
           <div class="result-ico" id="resultIco"></div>
@@ -216,49 +152,37 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div id="openBtnWrap"></div>
       </div>
     </div>
-
-    <!-- Upload -->
     <div id="tab-upload" class="section hidden">
-      <div class="info-box">
-        <strong>엑셀 컬럼 형식 안내</strong>
-        A열: 바코드 / QR 번호<br>
-        B열: 문서명<br>
-        C열: OneDrive PDF 링크 (공유 URL)
-      </div>
+      <div class="info-box" id="lbl-info-box"></div>
       <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
         <i class="ti ti-table-import" style="font-size:34px;color:#1255b5;display:block;margin-bottom:8px;"></i>
-        <p style="font-size:15px;font-weight:700;color:#0a2e6e;margin-bottom:4px;">새 엑셀 파일 업로드</p>
-        <p style="font-size:12px;color:#1565c0;">.xlsx 또는 .csv 파일</p>
+        <p style="font-size:15px;font-weight:700;color:#0a2e6e;margin-bottom:4px;" id="lbl-upload-title"></p>
+        <p style="font-size:12px;color:#1565c0;" id="lbl-upload-sub"></p>
       </div>
       <input type="file" id="fileInput" accept=".xlsx,.csv,.xls" style="display:none;" onchange="handleFile(this)">
       <div class="file-row">
         <i class="ti ti-file-spreadsheet" style="font-size:24px;color:#1255b5;"></i>
         <div class="file-info">
-          <p class="file-name" id="fileName">포장_바코드.xlsx</p>
-          <p class="file-meta" id="fileMeta">2개 항목 · 활성</p>
+          <p class="file-name" id="fileName"></p>
+          <p class="file-meta" id="fileMeta"></p>
         </div>
-        <span class="badge badge-green">활성</span>
+        <span class="badge badge-green" id="lbl-active"></span>
       </div>
     </div>
-
-    <!-- List -->
     <div id="tab-list" class="section hidden">
       <div class="search-wrap">
         <i class="ti ti-search"></i>
-        <input class="search-input" type="text" placeholder="문서명 또는 바코드 검색..." oninput="filterList(this.value)">
+        <input class="search-input" id="searchInput" type="text" oninput="filterList(this.value)">
       </div>
-      <p class="doc-count" id="docCount">전체 2개</p>
+      <p class="doc-count" id="docCount"></p>
       <div id="docList"></div>
     </div>
-
   </div>
 </div>
-
-<!-- Camera Section -->
 <div id="cameraSection">
   <div class="cam-header">
     <i class="ti ti-camera" style="color:#fff;font-size:20px;"></i>
-    <span>바코드 스캔</span>
+    <span id="lbl-cam-header"></span>
     <button class="cam-close" onclick="stopCamera()"><i class="ti ti-x"></i></button>
   </div>
   <video id="videoEl" autoplay playsinline muted></video>
@@ -269,162 +193,212 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div class="cam-scanline"></div>
     </div>
   </div>
-  <p class="cam-hint">바코드를 프레임 안에 맞춰주세요</p>
+  <p class="cam-hint" id="lbl-cam-hint"></p>
   <div class="cam-bottom">
     <button class="btn btn-outline" onclick="stopCamera()">
-      <i class="ti ti-x"></i> 취소
+      <i class="ti ti-x"></i> <span id="lbl-cancel"></span>
     </button>
   </div>
 </div>
-
 <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <script>
-let DB = [
-  { code: '4000196031150', name: 'HILTI빗각외경드레싱', url: 'https://ehwadia-my.sharepoint.com/:b:/g/personal/icdide_ehwadia_onmicrosoft_com/IQAf2d-0inNzSLBpZ6iuHzu9AVbFeZj96w8VHnVJ5EXimGM?e=UeZp2K' },
-  { code: '8801230160609', name: '실크스크린', url: 'https://ehwadia-my.sharepoint.com/:b:/g/personal/icdide_ehwadia_onmicrosoft_com/IQDyPnOd3EVqT68K7o7gvGNqARrYcpvjmsACEIuzp0Pkucc?e=0IBKW0' },
+var T = {
+  scan: '\uc2a4\uce94',
+  upload: '\uc5c5\ub85c\ub4dc',
+  list: '\ubaa9\ub85d',
+  scanTitle: '\ubc14\ucf54\ub4dc / QR \uc2a4\uce94',
+  scanSub: '\uce74\uba54\ub77c\ub85c \ucf54\ub4dc\ub97c \ube44\ucd94\uc138\uc694',
+  camBtn: '\uce74\uba54\ub77c\ub85c \uc2a4\uce94',
+  orText: '\ub610\ub294 \uc9c1\uc811 \uc785\ub825',
+  placeholder: '\ubc14\ucf54\ub4dc \ubc88\ud638 \uc785\ub825...',
+  infoBox: '<strong>\uc5d1\uc140 \ucf5c\ub7fc \ud615\uc2dd \uc548\ub0b4</strong><br>A\uc5f4: \ubc14\ucf54\ub4dc / QR \ubc88\ud638<br>B\uc5f4: \ubb38\uc11c\uba85<br>C\uc5f4: OneDrive PDF \ub9c1\ud06c',
+  uploadTitle: '\uc0c8 \uc5d1\uc140 \ud30c\uc77c \uc5c5\ub85c\ub4dc',
+  uploadSub: '.xlsx \ub610\ub294 .csv \ud30c\uc77c',
+  defaultFile: '\ud3ec\uc7a5_\ubc14\ucf54\ub4dc.xlsx',
+  defaultMeta: '2\uac1c \ud56d\ubaa9 \u00b7 \ud65c\uc131',
+  active: '\ud65c\uc131',
+  searchPlaceholder: '\ubb38\uc11c\uba85 \ub610\ub294 \ubc14\ucf54\ub4dc \uac80\uc0c9...',
+  total: '\uc804\uccb4 ',
+  count: '\uac1c',
+  found: '\uc9c0\ub3c4\uc11c\ub97c \ucc3e\uc558\uc2b5\ub2c8\uB2e4',
+  notfound: '\ud574\ub2f9 \ubc14\ucf54\ub4dc \uc9c0\ub3c4\uc11c \uc5c6\uc74c',
+  barcode: '\ubc14\ucf54\ub4dc',
+  docname: '\ubb38\uc11c\uba85',
+  openPdf: 'PDF \uc5f4\uae30 (OneDrive)',
+  camHeader: '\ubc14\ucf54\ub4dc \uc2a4\uce94',
+  camHint: '\ubc14\ucf54\ub4dc\ub97c \ud504\ub808\uc784 \uc548\uc5d0 \ub9de\ucdb0\uc8fc\uc138\uc694',
+  cancel: '\ucde8\uc18c',
+  noResult: '\uac80\uc0c9 \uacb0\uacfc\uac00 \uc5c6\uc2b5\ub2c8\uB2e4',
+  camError1: '\uce74\uba54\ub77c\ub97c \uc5f4 \uc218 \uc5c6\uc5c8\uc2b5\ub2c8\uB2e4.\n\n\uc8fc\uc18c\uc0ac\uce74\ub97c \ud655\uc778\ud558\uc138\uc694.',
+  camError2: '\uce74\uba54\ub77c\ub97c \uCC3E\uc744 \uc218 \uc5c6\uc2b5\ub2c8\uB2e4.',
+  xlsxMsg: 'xlsx\ud30c\uc77c\uc740 CSV\ub85c \ubcc0\ud658 \ud6c4 \uc5c5\ub85c\ub4dc\ud574\uc8fc\uc138\uc694.',
+  loaded: '\uac1c \ud56d\ubaa9\uc774 \ub85c\ub4dc\ub418\uc5c8\uc2b5\ub2c8\uB2e4.'
+};
+
+function initLabels() {
+  document.getElementById('lbl-scan').textContent = T.scan;
+  document.getElementById('lbl-upload').textContent = T.upload;
+  document.getElementById('lbl-list').textContent = T.list;
+  document.getElementById('lbl-scan-title').textContent = T.scanTitle;
+  document.getElementById('lbl-scan-sub').textContent = T.scanSub;
+  document.getElementById('lbl-cam-btn').textContent = T.camBtn;
+  document.getElementById('lbl-or').textContent = T.orText;
+  document.getElementById('manualCode').placeholder = T.placeholder;
+  document.getElementById('lbl-info-box').innerHTML = T.infoBox;
+  document.getElementById('lbl-upload-title').textContent = T.uploadTitle;
+  document.getElementById('lbl-upload-sub').textContent = T.uploadSub;
+  document.getElementById('fileName').textContent = T.defaultFile;
+  document.getElementById('fileMeta').textContent = T.defaultMeta;
+  document.getElementById('lbl-active').textContent = T.active;
+  document.getElementById('searchInput').placeholder = T.searchPlaceholder;
+  document.getElementById('docCount').textContent = T.total + DB.length + T.count;
+  document.getElementById('lbl-cam-header').textContent = T.camHeader;
+  document.getElementById('lbl-cam-hint').textContent = T.camHint;
+  document.getElementById('lbl-cancel').textContent = T.cancel;
+}
+
+var DB = [
+  { code: '4000196031150', name: 'HILTI\ube57\uac01\uc678\uacbd\ub4dc\ub808\uc2f1', url: 'https://ehwadia-my.sharepoint.com/:b:/g/personal/icdide_ehwadia_onmicrosoft_com/IQAf2d-0inNzSLBpZ6iuHzu9AVbFeZj96w8VHnVJ5EXimGM?e=UeZp2K' },
+  { code: '8801230160609', name: '\uc2e4\ud06c\uc2a4\ud06c\ub9b0', url: 'https://ehwadia-my.sharepoint.com/:b:/g/personal/icdide_ehwadia_onmicrosoft_com/IQDyPnOd3EVqT68K7o7gvGNqARrYcpvjmsACEIuzp0Pkucc?e=0IBKW0' }
 ];
 
-let codeReader = null;
-let streamActive = false;
+var codeReader = null;
+var streamActive = false;
 
 function showTab(tab, el) {
-  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(function(s){s.classList.add('hidden');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.getElementById('tab-'+tab).classList.remove('hidden');
   el.classList.add('active');
   if(tab==='list') renderList(DB);
 }
 
 function searchCode(code) {
-  const q = (code !== undefined ? code : document.getElementById('manualCode').value).trim();
+  var q = (code !== undefined ? code : document.getElementById('manualCode').value).trim();
   if(!q) return;
-  const found = DB.find(d => d.code === q);
-  const card = document.getElementById('resultCard');
-  card.style.display = 'block';
-  if(found) {
-    card.className = 'result-card found';
-    document.getElementById('resultIco').textContent = '✓';
-    document.getElementById('resultStatus').textContent = '지도서를 찾았습니다';
-    document.getElementById('resultDetail').innerHTML = `
-      <div class="result-row"><span class="rkey">바코드</span><span class="rval">${found.code}</span></div>
-      <div class="result-row"><span class="rkey">문서명</span><span class="rval highlight">${found.name}</span></div>
-    `;
-    document.getElementById('openBtnWrap').innerHTML = `
-      <button class="btn btn-green" onclick="openPDF('${found.url}')">
-        <i class="ti ti-file-type-pdf"></i> PDF 열기 (OneDrive)
-      </button>`;
+  var found = null;
+  for(var i=0;i<DB.length;i++){if(DB[i].code===q){found=DB[i];break;}}
+  var card = document.getElementById('resultCard');
+  card.style.display='block';
+  if(found){
+    card.className='result-card found';
+    document.getElementById('resultIco').textContent='\u2713';
+    document.getElementById('resultStatus').textContent=T.found;
+    document.getElementById('resultDetail').innerHTML=
+      '<div class="result-row"><span class="rkey">'+T.barcode+'</span><span class="rval">'+found.code+'</span></div>'+
+      '<div class="result-row"><span class="rkey">'+T.docname+'</span><span class="rval highlight">'+found.name+'</span></div>';
+    document.getElementById('openBtnWrap').innerHTML=
+      '<button class="btn btn-green" onclick="openPDF(\''+found.url+'\')">'+
+      '<i class="ti ti-file-type-pdf"></i> '+T.openPdf+'</button>';
   } else {
-    card.className = 'result-card notfound';
-    document.getElementById('resultIco').textContent = '✗';
-    document.getElementById('resultStatus').textContent = '해당 바코드 지도서 없음';
-    document.getElementById('resultDetail').innerHTML = `
-      <div class="result-row"><span class="rkey">바코드</span><span class="rval">${q}</span></div>
-    `;
-    document.getElementById('openBtnWrap').innerHTML = '';
+    card.className='result-card notfound';
+    document.getElementById('resultIco').textContent='\u2717';
+    document.getElementById('resultStatus').textContent=T.notfound;
+    document.getElementById('resultDetail').innerHTML=
+      '<div class="result-row"><span class="rkey">'+T.barcode+'</span><span class="rval">'+q+'</span></div>';
+    document.getElementById('openBtnWrap').innerHTML='';
   }
   card.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function openPDF(url) {
-  window.open(url, '_blank');
+function openPDF(url){window.open(url,'_blank');}
+
+function startCamera(){
+  var camEl=document.getElementById('cameraSection');
+  camEl.classList.add('active');
+  navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
+  }).then(function(stream){
+    var v=document.getElementById('videoEl');
+    v.srcObject=stream;
+    v.play();
+    streamActive=true;
+    waitForZXing(stream);
+  }).catch(function(err){
+    camEl.classList.remove('active');
+    alert(err.name==='NotFoundError'?T.camError2:T.camError1);
+  });
 }
 
-async function startCamera() {
-  const camEl = document.getElementById('cameraSection');
-  camEl.classList.add('active');
-  try {
-    if(typeof ZXing === 'undefined') {
-      alert('바코드 스캔 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-      camEl.classList.remove('active');
-      return;
-    }
-    codeReader = new ZXing.BrowserMultiFormatReader();
-    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-    const backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length-1];
-    const deviceId = backCam ? backCam.deviceId : undefined;
-    streamActive = true;
-    await codeReader.decodeFromVideoDevice(deviceId, 'videoEl', (result, err) => {
-      if(result && streamActive) {
-        streamActive = false;
-        const code = result.getText();
+function waitForZXing(stream){
+  if(typeof ZXing==='undefined'){setTimeout(function(){waitForZXing(stream);},300);return;}
+  try{
+    codeReader=new ZXing.BrowserMultiFormatReader();
+    var v=document.getElementById('videoEl');
+    codeReader.decodeFromStream(stream,v,function(result,err){
+      if(result&&streamActive){
+        streamActive=false;
+        var code=result.getText();
         stopCamera();
-        document.getElementById('manualCode').value = code;
+        document.getElementById('manualCode').value=code;
         searchCode(code);
-        // Vibrate on success
-        if(navigator.vibrate) navigator.vibrate(100);
+        if(navigator.vibrate)navigator.vibrate([100,50,100]);
       }
     });
-  } catch(e) {
-    camEl.classList.remove('active');
-    alert('카메라 접근 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
-  }
+  }catch(e){console.error(e);}
 }
 
-function stopCamera() {
-  streamActive = false;
-  if(codeReader) { codeReader.reset(); codeReader = null; }
+function stopCamera(){
+  streamActive=false;
+  if(codeReader){try{codeReader.reset();}catch(e){}codeReader=null;}
+  var v=document.getElementById('videoEl');
+  if(v&&v.srcObject){v.srcObject.getTracks().forEach(function(t){t.stop();});v.srcObject=null;}
   document.getElementById('cameraSection').classList.remove('active');
 }
 
-function handleFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  document.getElementById('fileName').textContent = file.name;
-  // CSV 파싱 (간단 지원)
-  if(file.name.endsWith('.csv')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const lines = e.target.result.split('\n').filter(l=>l.trim());
-      const newDB = [];
-      lines.slice(1).forEach(line => {
-        const parts = line.split(',');
-        if(parts.length >= 3 && parts[0].trim() && parts[2].trim()) {
-          newDB.push({ code: parts[0].trim(), name: parts[1]?.trim()||'', url: parts[2].trim() });
-        }
-      });
-      if(newDB.length > 0) {
-        DB = newDB;
-        document.getElementById('fileMeta').textContent = DB.length + '개 항목 · 활성';
-        alert(DB.length + '개 항목이 로드되었습니다.');
+function handleFile(input){
+  var file=input.files[0];
+  if(!file)return;
+  document.getElementById('fileName').textContent=file.name;
+  if(file.name.toLowerCase().endsWith('.csv')){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var lines=e.target.result.split('\n').filter(function(l){return l.trim();});
+      var newDB=[];
+      for(var i=1;i<lines.length;i++){
+        var parts=lines[i].split(',');
+        if(parts.length>=3&&parts[0].trim()&&parts[2].trim())
+          newDB.push({code:parts[0].trim(),name:(parts[1]||'').trim(),url:parts[2].trim()});
+      }
+      if(newDB.length>0){
+        DB=newDB;
+        document.getElementById('fileMeta').textContent=DB.length+T.count+' \u00b7 '+T.active;
+        alert(DB.length+T.loaded);
       }
     };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsText(file,'UTF-8');
   } else {
-    alert('xlsx 파일은 서버 연동이 필요합니다.\nCSV로 변환 후 업로드해주세요.\n(엑셀 → 다른 이름으로 저장 → CSV)');
+    alert(T.xlsxMsg);
   }
 }
 
-function renderList(data) {
-  document.getElementById('docCount').textContent = '전체 ' + data.length + '개';
-  const el = document.getElementById('docList');
-  if(!data.length) {
-    el.innerHTML = '<div class="empty"><i class="ti ti-file-off" style="font-size:32px;display:block;margin-bottom:8px;"></i>검색 결과가 없습니다</div>';
-    return;
+function renderList(data){
+  document.getElementById('docCount').textContent=T.total+data.length+T.count;
+  var el=document.getElementById('docList');
+  if(!data.length){el.innerHTML='<div class="empty">'+T.noResult+'</div>';return;}
+  var html='';
+  for(var i=0;i<data.length;i++){
+    var d=data[i];
+    html+='<div class="doc-row" onclick="goScan(\''+d.code+'\')">'+
+      '<div class="doc-icon"><i class="ti ti-file-type-pdf"></i></div>'+
+      '<div class="doc-info"><p class="doc-name">'+d.name+'</p><p class="doc-code">'+d.code+'</p></div>'+
+      '<i class="ti ti-chevron-right" style="color:#90caf9;font-size:16px;flex-shrink:0;"></i></div>';
   }
-  el.innerHTML = data.map(d => `
-    <div class="doc-row" onclick="goScan('${d.code}')">
-      <div class="doc-icon"><i class="ti ti-file-type-pdf"></i></div>
-      <div class="doc-info">
-        <p class="doc-name">${d.name}</p>
-        <p class="doc-code">${d.code}</p>
-      </div>
-      <i class="ti ti-chevron-right doc-arrow"></i>
-    </div>
-  `).join('');
+  el.innerHTML=html;
 }
 
-function filterList(q) {
-  const filtered = q ? DB.filter(d => d.name.includes(q) || d.code.includes(q)) : DB;
-  document.getElementById('docCount').textContent = q ? filtered.length + '개 검색됨' : '전체 ' + DB.length + '개';
+function filterList(q){
+  var filtered=q?DB.filter(function(d){return d.name.indexOf(q)>=0||d.code.indexOf(q)>=0;}):DB;
   renderList(filtered);
 }
 
-function goScan(code) {
-  showTab('scan', document.querySelectorAll('.tab')[0]);
-  document.getElementById('manualCode').value = code;
+function goScan(code){
+  showTab('scan',document.getElementById('tab-btn-scan'));
+  document.getElementById('manualCode').value=code;
   searchCode(code);
 }
 
+initLabels();
 renderList(DB);
 </script>
 </body>
