@@ -277,7 +277,7 @@ function initLabels() {
 }
 
 var DB = [];
-var XLSX_URL = 'https://raw.githubusercontent.com/icdide/quality/main/data.xlsx';
+var XLSX_URL = 'https://icdide.github.io/quality/data.xlsx';
 
 function loadCSV() {
   loadXLSX();
@@ -292,7 +292,7 @@ function loadXLSX() {
       return r.arrayBuffer();
     })
     .then(function(buf){
-      var wb = XLSX.read(buf, {type:'array', cellText:false, cellDates:true, raw:false});
+      var wb = XLSX.read(buf, {type:'array', raw:false, cellText:false});
       var ws = wb.Sheets[wb.SheetNames[0]];
       var rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
       var newDB = [];
@@ -301,13 +301,11 @@ function loadXLSX() {
         var code = (row[0]||'').toString().trim();
         var name = (row[1]||'').toString().trim();
         var url  = (row[2]||'').toString().trim();
-        if(code && url){
-          // 지수표현(1.23E+13) 방지: 이미 raw:false로 읽으므로 숫자형이면 정수변환
-          if(/^\d+\.?\d*[eE][+\-]?\d+$/.test(code)){
-            try{ code = BigInt(Math.round(parseFloat(code))).toString(); }catch(e){}
-          }
-          newDB.push({code:code, name:name, url:url});
+        if(!code || !url) continue;
+        if(/^[\d.]+[eE][+\-]?\d+$/.test(code)){
+          try{ code = BigInt(Math.round(parseFloat(code))).toString(); }catch(ex){}
         }
+        newDB.push({code:code, name:name, url:url});
       }
       if(newDB.length > 0){
         DB = newDB;
@@ -318,7 +316,7 @@ function loadXLSX() {
         if(statusEl) statusEl.textContent = '✓ ' + DB.length + '개 항목 로드 완료';
         renderList(DB);
       } else {
-        if(statusEl) statusEl.textContent = '데이터가 비어있습니다. 파일을 확인해주세요.';
+        if(statusEl) statusEl.textContent = '데이터가 비어있습니다.';
       }
     })
     .catch(function(e){
