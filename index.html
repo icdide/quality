@@ -116,7 +116,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="logo-sub">QUALITY ASSURANCE Dep&#x27;t</div>
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.01</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.02</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -136,7 +136,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
         <p class="scan-lbl" id="lbl-scan-title"></p>
         <p style="font-size:12px;color:#1565c0;" id="lbl-scan-sub"></p>
       </div>
-      <button class="btn btn-primary" onclick="startCamera()">
+      <button class="btn btn-primary" onclick="startCamera()" id="mainScanBtn">
         <i class="ti ti-camera"></i> <span id="lbl-cam-btn"></span>
       </button>
       <div class="divider"><span id="lbl-or"></span></div>
@@ -197,6 +197,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
     <button class="cam-close" onclick="stopCamera()"><i class="ti ti-x"></i></button>
   </div>
   <video id="videoEl" autoplay playsinline muted></video>
+<input type="file" id="iosPhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="handleIOSPhoto(this)">
   <div class="cam-overlay">
     <div class="cam-frame">
       <div class="cam-corner tl"></div><div class="cam-corner tr"></div>
@@ -263,7 +264,8 @@ function initLabels() {
   document.getElementById('lbl-list').textContent = T.list;
   document.getElementById('lbl-scan-title').textContent = T.scanTitle;
   document.getElementById('lbl-scan-sub').textContent = T.scanSub;
-  document.getElementById('lbl-cam-btn').textContent = T.camBtn;
+  var isIOSinit = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  document.getElementById('lbl-cam-btn').textContent = isIOSinit ? '카메라로 바코드 찍기 (iOS)' : T.camBtn;
   document.getElementById('lbl-or').textContent = T.orText;
   document.getElementById('manualCode').placeholder = T.placeholder;
   document.getElementById('lbl-info-box').innerHTML = T.infoBox;
@@ -552,80 +554,12 @@ function setZoom(z){
 function startScanning(v){
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-  // iOS Safari: ZXing 캔버스 스캔 (고해상도 + 다중 영역 분석)
+  // iOS Safari: 카메라 앱으로 사진 촬영 후 ZXing 디코딩 (가장 안정적)
   if(isIOS){
-    function tryZXingiOS(){
-      if(typeof ZXing==='undefined'){ setTimeout(tryZXingiOS,300); return; }
-      var canvas=document.createElement('canvas');
-      var ctx=canvas.getContext('2d');
-      var hints=new Map();
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
-        ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,   ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E,   ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.CODE_93,
-        ZXing.BarcodeFormat.DATA_MATRIX
-      ]);
-      var reader=new ZXing.MultiFormatReader();
-      reader.setHints(hints);
-
-      function scanFrame(){
-        if(!streamActive) return;
-        if(v.readyState < 2 || v.videoWidth===0){
-          scanInterval=setTimeout(scanFrame,150); return;
-        }
-        var vw=v.videoWidth, vh=v.videoHeight;
-
-        // 스캔 후보 영역들 (작은 사이즈로 변환해서 ZXing 처리 속도 향상)
-        var regions = [
-          // 전체
-          {sx:0, sy:0, sw:vw, sh:vh, dw:Math.min(vw,800), dh:Math.min(vh,600)},
-          // 중앙 80%
-          {sx:Math.floor(vw*0.1), sy:Math.floor(vh*0.1), sw:Math.floor(vw*0.8), sh:Math.floor(vh*0.8), dw:640, dh:480},
-          // 중앙 수평띠 (바코드 특화)
-          {sx:0, sy:Math.floor(vh*0.25), sw:vw, sh:Math.floor(vh*0.5), dw:Math.min(vw,800), dh:240},
-          // 상단 절반
-          {sx:0, sy:0, sw:vw, sh:Math.floor(vh*0.5), dw:Math.min(vw,800), dh:240},
-          // 하단 절반
-          {sx:0, sy:Math.floor(vh*0.5), sw:vw, sh:Math.floor(vh*0.5), dw:Math.min(vw,800), dh:240},
-        ];
-
-        var decoded = null;
-        for(var ri=0; ri<regions.length && !decoded; ri++){
-          var r=regions[ri];
-          var c=document.createElement('canvas');
-          c.width=r.dw; c.height=r.dh;
-          var cx=c.getContext('2d');
-          cx.drawImage(v, r.sx, r.sy, r.sw, r.sh, 0, 0, r.dw, r.dh);
-          decoded = tryDecode(cx, c, r.dw, r.dh);
-        }
-
-        if(decoded && streamActive){
-          streamActive=false;
-          if(navigator.vibrate) navigator.vibrate([100,50,100]);
-          stopCamera();
-          document.getElementById('manualCode').value=decoded;
-          searchCode(decoded);
-          return;
-        }
-        if(streamActive) scanInterval=setTimeout(scanFrame, 150);
-      }
-
-      function tryDecode(ctx, canvas, w, h){
-        try{
-          var imgData=ctx.getImageData(0,0,w,h);
-          var lum=new ZXing.RGBLuminanceSource(imgData.data,w,h);
-          var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
-          var result=reader.decode(bmp);
-          if(result) return result.getText();
-        }catch(e){}
-        return null;
-      }
-      scanFrame();
-    }
-    tryZXingiOS();
+    // 카메라 오버레이 닫고 iOS 사진 입력 사용
+    stopCamera();
+    document.getElementById('iosPhotoInput').value = '';
+    document.getElementById('iosPhotoInput').click();
     return;
   }
 
@@ -758,6 +692,106 @@ function startCamera(){
     if(o) document.body.removeChild(o);
     alert(err.name==='NotFoundError'?T.camError2:T.camError1);
   });
+}
+
+function handleIOSPhoto(input){
+  var file = input.files[0];
+  if(!file) return;
+
+  // 상태 표시
+  var card = document.getElementById('resultCard');
+  card.style.display = 'block';
+  card.className = 'result-card found';
+  document.getElementById('resultIco').textContent = '...';
+  document.getElementById('resultStatus').textContent = '스캔 중...';
+  document.getElementById('resultDetail').innerHTML = '';
+  document.getElementById('openBtnWrap').innerHTML = '';
+
+  var img = new Image();
+  var url = URL.createObjectURL(file);
+  img.onload = function(){
+    URL.revokeObjectURL(url);
+    // 여러 해상도로 시도
+    var sizes = [
+      {w: img.width, h: img.height},
+      {w: Math.min(img.width, 1200), h: Math.round(img.height * Math.min(1200/img.width, 1))},
+      {w: 800, h: Math.round(img.height * 800/img.width)},
+      {w: 400, h: Math.round(img.height * 400/img.width)},
+    ];
+
+    function tryZXingPhoto(){
+      if(typeof ZXing === 'undefined'){ setTimeout(tryZXingPhoto, 300); return; }
+      var hints = new Map();
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,   ZXing.BarcodeFormat.UPC_A,
+        ZXing.BarcodeFormat.UPC_E,   ZXing.BarcodeFormat.ITF,
+        ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.CODE_93,
+        ZXing.BarcodeFormat.DATA_MATRIX
+      ]);
+      var reader = new ZXing.MultiFormatReader();
+      reader.setHints(hints);
+
+      var decoded = null;
+
+      // 각 해상도별 전체 + 영역 스캔
+      for(var si=0; si<sizes.length && !decoded; si++){
+        var s = sizes[si];
+        var canvas = document.createElement('canvas');
+        canvas.width = s.w; canvas.height = s.h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, s.w, s.h);
+
+        // 전체
+        decoded = decodeCanvas(ctx, s.w, s.h, reader);
+        if(decoded) break;
+
+        // 중앙 수평띠
+        var bh = Math.floor(s.h * 0.4);
+        var by = Math.floor(s.h * 0.3);
+        var c2 = document.createElement('canvas');
+        c2.width = s.w; c2.height = bh;
+        var cx2 = c2.getContext('2d');
+        cx2.drawImage(img, 0, Math.floor(img.height*0.3), img.width, Math.floor(img.height*0.4), 0, 0, s.w, bh);
+        decoded = decodeCanvas(cx2, s.w, bh, reader);
+        if(decoded) break;
+
+        // 중앙 80%
+        var cw = Math.floor(s.w * 0.8), ch = Math.floor(s.h * 0.8);
+        var c3 = document.createElement('canvas');
+        c3.width = cw; c3.height = ch;
+        var cx3 = c3.getContext('2d');
+        cx3.drawImage(img, Math.floor(img.width*0.1), Math.floor(img.height*0.1), Math.floor(img.width*0.8), Math.floor(img.height*0.8), 0, 0, cw, ch);
+        decoded = decodeCanvas(cx3, cw, ch, reader);
+        if(decoded) break;
+      }
+
+      if(decoded){
+        document.getElementById('manualCode').value = decoded;
+        searchCode(decoded);
+      } else {
+        card.className = 'result-card notfound';
+        document.getElementById('resultIco').textContent = '✗';
+        document.getElementById('resultStatus').textContent = '바코드를 인식하지 못했습니다. 다시 찍어주세요.';
+        document.getElementById('resultDetail').innerHTML = '<div class="result-row"><span class="rkey">팁</span><span class="rval">바코드가 화면 중앙에 오도록 찍어주세요</span></div>';
+      }
+    }
+    tryZXingPhoto();
+  };
+  img.src = url;
+}
+
+function decodeCanvas(ctx, w, h, reader){
+  try{
+    var imgData = ctx.getImageData(0, 0, w, h);
+    var lum = new ZXing.RGBLuminanceSource(imgData.data, w, h);
+    var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
+    var result = reader.decode(bmp);
+    if(result) return result.getText();
+  }catch(e){}
+  return null;
 }
 
 function stopCamera(){
