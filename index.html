@@ -424,14 +424,21 @@ function buildCamUI(){
   torchBtn.innerHTML = '<i class="ti ti-flashlight"></i> 플래시';
   torchBtn.onclick = toggleTorch;
 
-  var focusBtn = document.createElement('button');
-  focusBtn.style.cssText = btnStyle;
-  focusBtn.innerHTML = '<i class="ti ti-focus-2"></i> 포커스';
-  focusBtn.onclick = focusCamera;
+  // Zoom buttons
+  var zoomWrap = document.createElement('div');
+  zoomWrap.style.cssText = 'flex:2;display:flex;gap:6px;';
+  [1, 1.5, 2].forEach(function(z){
+    var zBtn = document.createElement('button');
+    zBtn.id = 'zoomBtn' + z;
+    zBtn.style.cssText = btnStyle + (z===1 ? 'background:rgba(255,255,255,0.3);font-weight:700;' : '');
+    zBtn.textContent = z + 'x';
+    zBtn.onclick = function(){ setZoom(z); };
+    zoomWrap.appendChild(zBtn);
+  });
 
   btm.appendChild(cancelBtn);
   btm.appendChild(torchBtn);
-  btm.appendChild(focusBtn);
+  btm.appendChild(zoomWrap);
   overlay.appendChild(btm);
 
   document.body.appendChild(overlay);
@@ -517,22 +524,36 @@ function toggleTorch(){
   document.getElementById('lbl-torch').textContent = torchOn ? '플래시 ON' : '플래시';
 }
 
-function focusCamera(){
+var currentZoom = 1;
+function setZoom(z){
+  currentZoom = z;
   var v = document.getElementById('videoEl');
   if(!v.srcObject) return;
   var t = v.srcObject.getVideoTracks()[0];
   if(!t) return;
-  // 포커스 초기화 후 재연속포커스
-  t.applyConstraints({advanced:[{focusMode:'manual'}]}).then(function(){
-    return t.applyConstraints({advanced:[{focusMode:'continuous'}]});
-  }).catch(function(){});
+  // Try native zoom via constraints
+  t.applyConstraints({advanced:[{zoom: z}]}).catch(function(){
+    // Fallback: CSS transform zoom on video
+    v.style.transform = 'scale('+z+')';
+    v.style.transformOrigin = 'center center';
+  });
+  // Update button styles
+  [1, 1.5, 2].forEach(function(zv){
+    var btn = document.getElementById('zoomBtn'+zv);
+    if(!btn) return;
+    btn.style.background = (zv===z) ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)';
+    btn.style.fontWeight = (zv===z) ? '700' : '500';
+    btn.style.border = (zv===z) ? '2px solid rgba(255,255,255,0.9)' : '1.5px solid rgba(255,255,255,0.5)';
+  });
 }
 
 function stopCamera(){
   streamActive=false;
   torchOn=false;
-  if(codeReader){try{codeReader.reset();}catch(e){}codeReader=null;}
+  currentZoom=1;
   var v=document.getElementById('videoEl');
+  if(v){ v.style.transform=''; v.style.transformOrigin=''; }
+  if(codeReader){try{codeReader.reset();}catch(e){}codeReader=null;}
   if(v&&v.srcObject){v.srcObject.getTracks().forEach(function(t){t.stop();});v.srcObject=null;}
   v.style.display='none';
   var o=document.getElementById('camOverlay');
