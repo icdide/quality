@@ -430,7 +430,7 @@ function buildCamUI(){
   [1, 1.5, 2].forEach(function(z){
     var zBtn = document.createElement('button');
     zBtn.id = 'zoomBtn' + z;
-    zBtn.style.cssText = btnStyle + (z===1 ? 'background:rgba(255,255,255,0.3);font-weight:700;' : '');
+    zBtn.style.cssText = btnStyle + (z===1 ? 'background:rgba(255,255,255,0.3);border:2px solid rgba(255,255,255,0.9);font-weight:700;' : '');
     zBtn.textContent = z + 'x';
     zBtn.onclick = function(){ setZoom(z); };
     zoomWrap.appendChild(zBtn);
@@ -493,19 +493,16 @@ function waitForZXing(stream){
     ];
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
-    // 스캔 간격을 짧게 설정 (더 자주 시도)
-    codeReader = new ZXing.BrowserMultiFormatReader(hints, 200);
-    var v=document.getElementById('videoEl');
-    codeReader.decodeFromStream(stream,v,function(result,err){
-      if(result&&streamActive){
-        streamActive=false;
-        var code=result.getText();
-        var fmt=result.getBarcodeFormat?result.getBarcodeFormat().toString():'';
+    codeReader = new ZXing.BrowserMultiFormatReader(hints, 100);
+    var v = document.getElementById('videoEl');
+    codeReader.decodeFromVideoElement(v, function(result, err){
+      if(result && streamActive){
+        streamActive = false;
+        var code = result.getText();
         stopCamera();
-        document.getElementById('manualCode').value=code;
+        document.getElementById('manualCode').value = code;
         searchCode(code);
-        if(navigator.vibrate)navigator.vibrate([100,50,100]);
+        if(navigator.vibrate) navigator.vibrate([100,50,100]);
       }
     });
   }catch(e){console.error(e);}
@@ -528,16 +525,16 @@ var currentZoom = 1;
 function setZoom(z){
   currentZoom = z;
   var v = document.getElementById('videoEl');
-  if(!v.srcObject) return;
+  if(!v || !v.srcObject) return;
   var t = v.srcObject.getVideoTracks()[0];
-  if(!t) return;
-  // Try native zoom via constraints
-  t.applyConstraints({advanced:[{zoom: z}]}).catch(function(){
-    // Fallback: CSS transform zoom on video
-    v.style.transform = 'scale('+z+')';
-    v.style.transformOrigin = 'center center';
-  });
-  // Update button styles
+  if(t){
+    // 네이티브 줌 (화질 유지, ZXing 영향 없음)
+    t.applyConstraints({advanced:[{zoom: z}]}).catch(function(){
+      // 미지원 기기: 안내만 표시
+      console.log('Native zoom not supported');
+    });
+  }
+  // 버튼 스타일 업데이트
   [1, 1.5, 2].forEach(function(zv){
     var btn = document.getElementById('zoomBtn'+zv);
     if(!btn) return;
@@ -551,8 +548,6 @@ function stopCamera(){
   streamActive=false;
   torchOn=false;
   currentZoom=1;
-  var v=document.getElementById('videoEl');
-  if(v){ v.style.transform=''; v.style.transformOrigin=''; }
   if(codeReader){try{codeReader.reset();}catch(e){}codeReader=null;}
   if(v&&v.srcObject){v.srcObject.getTracks().forEach(function(t){t.stop();});v.srcObject=null;}
   v.style.display='none';
