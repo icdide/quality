@@ -201,13 +201,23 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="cam-corner tl"></div><div class="cam-corner tr"></div>
       <div class="cam-corner bl"></div><div class="cam-corner br"></div>
       <div class="cam-scanline"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.6);"></div>
     </div>
+    <div style="position:absolute;top:calc(50% + 125px);color:rgba(255,255,255,0.75);font-size:12px;text-align:center;">바코드를 프레임 안에 맞춰주세요</div>
   </div>
   <p class="cam-hint" id="lbl-cam-hint"></p>
   <div class="cam-bottom">
-    <button class="btn btn-outline" onclick="stopCamera()">
-      <i class="ti ti-x"></i> <span id="lbl-cancel"></span>
-    </button>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="stopCamera()" style="flex:1;">
+        <i class="ti ti-x"></i> <span id="lbl-cancel"></span>
+      </button>
+      <button class="btn btn-outline" onclick="toggleTorch()" id="torchBtn" style="flex:1;">
+        <i class="ti ti-flashlight"></i> <span id="lbl-torch">플래시</span>
+      </button>
+      <button class="btn btn-outline" onclick="focusCamera()" style="flex:1;">
+        <i class="ti ti-focus-2"></i> <span>포커스</span>
+      </button>
+    </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -363,9 +373,23 @@ function openPDF(url){window.open(url,'_blank');}
 function startCamera(){
   var camEl=document.getElementById('cameraSection');
   camEl.classList.add('active');
-  navigator.mediaDevices.getUserMedia({
-    video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
-  }).then(function(stream){
+  var constraints = {
+    video: {
+      facingMode: {ideal: 'environment'},
+      width: {ideal: 1920},
+      height: {ideal: 1080},
+      focusMode: {ideal: 'continuous'},
+      advanced: [{focusMode: 'continuous'}, {torch: false}]
+    }
+  };
+  navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
+    // 연속 자동포커스 활성화
+    var track = stream.getVideoTracks()[0];
+    if(track && track.applyConstraints) {
+      track.applyConstraints({
+        advanced: [{focusMode: 'continuous'}]
+      }).catch(function(){});
+    }
     var v=document.getElementById('videoEl');
     v.srcObject=stream;
     v.play();
@@ -396,7 +420,9 @@ function waitForZXing(stream){
     ];
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    codeReader = new ZXing.BrowserMultiFormatReader(hints);
+    hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+    // 스캔 간격을 짧게 설정 (더 자주 시도)
+    codeReader = new ZXing.BrowserMultiFormatReader(hints, 200);
     var v=document.getElementById('videoEl');
     codeReader.decodeFromStream(stream,v,function(result,err){
       if(result&&streamActive){
@@ -410,6 +436,30 @@ function waitForZXing(stream){
       }
     });
   }catch(e){console.error(e);}
+}
+
+var torchOn = false;
+function toggleTorch(){
+  var track = document.getElementById('videoEl').srcObject;
+  if(!track) return;
+  var t = track.getVideoTracks()[0];
+  if(!t) return;
+  torchOn = !torchOn;
+  t.applyConstraints({advanced:[{torch: torchOn}]}).catch(function(){
+    document.getElementById('lbl-torch').textContent = '지원안됨';
+  });
+  document.getElementById('lbl-torch').textContent = torchOn ? '플래시 ON' : '플래시';
+}
+
+function focusCamera(){
+  var v = document.getElementById('videoEl');
+  if(!v.srcObject) return;
+  var t = v.srcObject.getVideoTracks()[0];
+  if(!t) return;
+  // 포커스 초기화 후 재연속포커스
+  t.applyConstraints({advanced:[{focusMode:'manual'}]}).then(function(){
+    return t.applyConstraints({advanced:[{focusMode:'continuous'}]});
+  }).catch(function(){});
 }
 
 function stopCamera(){
