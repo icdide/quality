@@ -511,123 +511,152 @@ function toggleTorch(){
   var t = videoStream.getVideoTracks()[0];
   if(!t) return;
   torchOn = !torchOn;
-  t.applyConstraints({advanced:[{torch: torchOn}]}).catch(function(){
-    var btn = document.getElementById('torchBtn');
-    if(btn) btn.innerHTML = '<i class="ti ti-flashlight-off"></i> 지원안됨';
-    torchOn = false;
+  t.applyConstraints({advanced:[{torch:torchOn}]}).catch(function(){
+    var btn=document.getElementById('torchBtn');
+    if(btn) btn.innerHTML='<i class="ti ti-flashlight-off"></i> 지원안됨';
+    torchOn=false;
   });
-  var btn = document.getElementById('torchBtn');
-  if(btn) btn.innerHTML = torchOn
-    ? '<i class="ti ti-flashlight"></i> ON'
-    : '<i class="ti ti-flashlight"></i> 플래시';
+  var btn=document.getElementById('torchBtn');
+  if(btn) btn.innerHTML=torchOn?'<i class="ti ti-flashlight"></i> ON':'<i class="ti ti-flashlight"></i> 플래시';
 }
 
 function setZoom(z){
-  currentZoom = z;
+  currentZoom=z;
   if(!videoStream) return;
-  var t = videoStream.getVideoTracks()[0];
-  if(t){
-    t.applyConstraints({advanced:[{zoom:z}]}).catch(function(){});
-  }
+  var t=videoStream.getVideoTracks()[0];
+  if(t) t.applyConstraints({advanced:[{zoom:z}]}).catch(function(){});
   [1,1.5,2].forEach(function(zv){
-    var btn = document.getElementById('zoomBtn'+zv);
+    var btn=document.getElementById('zoomBtn'+zv);
     if(!btn) return;
-    btn.style.background = (zv===z)?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.1)';
-    btn.style.border = (zv===z)?'2px solid #fff':'1.5px solid rgba(255,255,255,0.5)';
-    btn.style.fontWeight = (zv===z)?'700':'500';
+    btn.style.background=(zv===z)?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.1)';
+    btn.style.border=(zv===z)?'2px solid #fff':'1.5px solid rgba(255,255,255,0.5)';
+    btn.style.fontWeight=(zv===z)?'700':'500';
   });
 }
 
-function waitForZXing(){
-  if(typeof ZXing==='undefined'){
-    setTimeout(waitForZXing, 300); return;
+function startScanning(v){
+  // Method 1: BarcodeDetector API (Android Chrome 내장 엔진 - 가장 정확)
+  if('BarcodeDetector' in window){
+    var detector = new BarcodeDetector({
+      formats:['qr_code','code_39','code_128','ean_13','ean_8','upc_a','upc_e','itf','data_matrix','codabar','code_93']
+    });
+    function detect(){
+      if(!streamActive) return;
+      detector.detect(v).then(function(barcodes){
+        if(barcodes.length>0 && streamActive){
+          streamActive=false;
+          var code=barcodes[0].rawValue;
+          if(navigator.vibrate) navigator.vibrate([100,50,100]);
+          stopCamera();
+          document.getElementById('manualCode').value=code;
+          searchCode(code);
+        } else {
+          if(streamActive) scanInterval=setTimeout(detect, 150);
+        }
+      }).catch(function(){ if(streamActive) scanInterval=setTimeout(detect,150); });
+    }
+    detect();
+    return;
   }
-  var v = document.getElementById('videoEl');
-  var canvas = document.createElement('canvas');
-  var ctx = canvas.getContext('2d');
 
-  var hints = new Map();
-  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-    ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
-    ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
-    ZXing.BarcodeFormat.EAN_8,  ZXing.BarcodeFormat.UPC_A,
-    ZXing.BarcodeFormat.UPC_E,  ZXing.BarcodeFormat.ITF,
-    ZXing.BarcodeFormat.CODABAR,ZXing.BarcodeFormat.CODE_93,
-    ZXing.BarcodeFormat.DATA_MATRIX
-  ]);
-  var reader = new ZXing.MultiFormatReader();
-  reader.setHints(hints);
-
-  function tryScan(){
-    if(!streamActive) return;
-    if(v.readyState < 2){ setTimeout(tryScan, 100); return; }
-    try{
-      canvas.width = v.videoWidth;
-      canvas.height = v.videoHeight;
-      ctx.drawImage(v, 0, 0);
-      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      var luminance = new ZXing.RGBLuminanceSource(imgData.data, canvas.width, canvas.height);
-      var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
-      var result = reader.decode(bmp);
-      if(result && streamActive){
-        streamActive = false;
-        var code = result.getText();
-        if(navigator.vibrate) navigator.vibrate([100,50,100]);
-        stopCamera();
-        document.getElementById('manualCode').value = code;
-        searchCode(code);
-        return;
-      }
-    }catch(e){}
-    if(streamActive) scanInterval = setTimeout(tryScan, 80);
+  // Method 2: ZXing fallback
+  function tryZXing(){
+    if(typeof ZXing==='undefined'){ setTimeout(tryZXing,300); return; }
+    var canvas=document.createElement('canvas');
+    var ctx=canvas.getContext('2d');
+    var hints=new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+      ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,   ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,   ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.CODE_93,
+      ZXing.BarcodeFormat.DATA_MATRIX
+    ]);
+    var reader=new ZXing.MultiFormatReader();
+    reader.setHints(hints);
+    function scan(){
+      if(!streamActive) return;
+      if(v.readyState<2){ scanInterval=setTimeout(scan,100); return; }
+      try{
+        canvas.width=v.videoWidth; canvas.height=v.videoHeight;
+        ctx.drawImage(v,0,0);
+        var imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+        var lum=new ZXing.RGBLuminanceSource(imgData.data,canvas.width,canvas.height);
+        var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
+        var result=reader.decode(bmp);
+        if(result && streamActive){
+          streamActive=false;
+          var code=result.getText();
+          if(navigator.vibrate) navigator.vibrate([100,50,100]);
+          stopCamera();
+          document.getElementById('manualCode').value=code;
+          searchCode(code);
+          return;
+        }
+      }catch(e){}
+      if(streamActive) scanInterval=setTimeout(scan,100);
+    }
+    scan();
   }
-  tryScan();
+  tryZXing();
 }
 
 function startCamera(){
   buildCamUI();
-  navigator.mediaDevices.getUserMedia({
+  // 안드로이드 크롬 자동초점 최적화 제약조건
+  var constraints={
     video:{
       facingMode:{ideal:'environment'},
-      width:{ideal:1920}, height:{ideal:1080},
-      focusMode:'continuous'
+      width:{min:640, ideal:1920, max:1920},
+      height:{min:480, ideal:1080, max:1080},
+      focusMode:{ideal:'continuous'},
+      exposureMode:{ideal:'continuous'},
+      whiteBalanceMode:{ideal:'continuous'}
     }
-  }).then(function(stream){
-    videoStream = stream;
-    var track = stream.getVideoTracks()[0];
-    // 연속 자동초점 요청
+  };
+  navigator.mediaDevices.getUserMedia(constraints)
+  .then(function(stream){
+    videoStream=stream;
+    var track=stream.getVideoTracks()[0];
+    // 연속 자동초점 강제 적용
     if(track && track.applyConstraints){
       track.applyConstraints({
-        advanced:[{focusMode:'continuous'},{exposureMode:'continuous'},{whiteBalanceMode:'continuous'}]
+        advanced:[
+          {focusMode:'continuous'},
+          {exposureMode:'continuous'},
+          {whiteBalanceMode:'continuous'}
+        ]
       }).catch(function(){});
     }
-    var v = document.getElementById('videoEl');
-    v.srcObject = stream;
-    v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block;';
+    var v=document.getElementById('videoEl');
+    v.srcObject=stream;
+    v.setAttribute('playsinline','');
+    v.setAttribute('autoplay','');
+    v.muted=true;
+    v.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block;';
     v.play().then(function(){
-      streamActive = true;
-      waitForZXing();
-    });
+      streamActive=true;
+      // 비디오 안정화 후 스캔 시작 (자동초점 맞을 시간)
+      setTimeout(function(){ startScanning(v); }, 800);
+    }).catch(function(e){ console.error(e); });
   }).catch(function(err){
-    var o = document.getElementById('camOverlay');
+    var o=document.getElementById('camOverlay');
     if(o) document.body.removeChild(o);
-    alert(err.name==='NotFoundError' ? T.camError2 : T.camError1);
+    alert(err.name==='NotFoundError'?T.camError2:T.camError1);
   });
 }
 
 function stopCamera(){
-  streamActive = false;
-  torchOn = false;
-  currentZoom = 1;
+  streamActive=false;
+  torchOn=false;
+  currentZoom=1;
   if(scanInterval){ clearTimeout(scanInterval); scanInterval=null; }
-  if(videoStream){
-    videoStream.getTracks().forEach(function(t){t.stop();});
-    videoStream = null;
-  }
-  var v = document.getElementById('videoEl');
+  if(videoStream){ videoStream.getTracks().forEach(function(t){t.stop();}); videoStream=null; }
+  var v=document.getElementById('videoEl');
   if(v){ v.srcObject=null; v.style.display='none'; document.body.appendChild(v); }
-  var o = document.getElementById('camOverlay');
+  var o=document.getElementById('camOverlay');
   if(o) document.body.removeChild(o);
 }
 
