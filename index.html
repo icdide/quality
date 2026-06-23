@@ -221,7 +221,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <script>
 var T = {
   scan: '\uc2a4\uce94',
@@ -374,7 +374,9 @@ function buildCamUI(){
   overlay.id = 'camOverlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;';
 
-  // html5-qrcode manages its own video element inside #html5qr-scan
+  var v = document.getElementById('videoEl');
+  v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;';
+  overlay.appendChild(v);
 
   // Header
   var hdr = document.createElement('div');
@@ -500,52 +502,133 @@ function waitForZXing(stream){
 }
 
 var torchOn = false;
+var currentZoom = 1;
+var scanInterval = null;
+var videoStream = null;
+
 function toggleTorch(){
-  if(!codeReader) return;
+  if(!videoStream) return;
+  var t = videoStream.getVideoTracks()[0];
+  if(!t) return;
   torchOn = !torchOn;
-  codeReader.applyVideoConstraints({
-    advanced: [{ torch: torchOn }]
-  }).catch(function(){
+  t.applyConstraints({advanced:[{torch: torchOn}]}).catch(function(){
     var btn = document.getElementById('torchBtn');
     if(btn) btn.innerHTML = '<i class="ti ti-flashlight-off"></i> 지원안됨';
     torchOn = false;
   });
   var btn = document.getElementById('torchBtn');
   if(btn) btn.innerHTML = torchOn
-    ? '<i class="ti ti-flashlight"></i> 플래시 ON'
+    ? '<i class="ti ti-flashlight"></i> ON'
     : '<i class="ti ti-flashlight"></i> 플래시';
 }
 
-var currentZoom = 1;
 function setZoom(z){
   currentZoom = z;
-  if(codeReader){
-    codeReader.applyVideoConstraints({
-      advanced: [{ zoom: z }]
-    }).catch(function(){ console.log('Zoom not supported'); });
+  if(!videoStream) return;
+  var t = videoStream.getVideoTracks()[0];
+  if(t){
+    t.applyConstraints({advanced:[{zoom:z}]}).catch(function(){});
   }
-  [1, 1.5, 2].forEach(function(zv){
+  [1,1.5,2].forEach(function(zv){
     var btn = document.getElementById('zoomBtn'+zv);
     if(!btn) return;
-    btn.style.background = (zv===z) ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)';
-    btn.style.fontWeight = (zv===z) ? '700' : '500';
-    btn.style.border = (zv===z) ? '2px solid rgba(255,255,255,0.9)' : '1.5px solid rgba(255,255,255,0.5)';
+    btn.style.background = (zv===z)?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.1)';
+    btn.style.border = (zv===z)?'2px solid #fff':'1.5px solid rgba(255,255,255,0.5)';
+    btn.style.fontWeight = (zv===z)?'700':'500';
+  });
+}
+
+function waitForZXing(){
+  if(typeof ZXing==='undefined'){
+    setTimeout(waitForZXing, 300); return;
+  }
+  var v = document.getElementById('videoEl');
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+
+  var hints = new Map();
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,  ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E,  ZXing.BarcodeFormat.ITF,
+    ZXing.BarcodeFormat.CODABAR,ZXing.BarcodeFormat.CODE_93,
+    ZXing.BarcodeFormat.DATA_MATRIX
+  ]);
+  var reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
+
+  function tryScan(){
+    if(!streamActive) return;
+    if(v.readyState < 2){ setTimeout(tryScan, 100); return; }
+    try{
+      canvas.width = v.videoWidth;
+      canvas.height = v.videoHeight;
+      ctx.drawImage(v, 0, 0);
+      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var luminance = new ZXing.RGBLuminanceSource(imgData.data, canvas.width, canvas.height);
+      var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
+      var result = reader.decode(bmp);
+      if(result && streamActive){
+        streamActive = false;
+        var code = result.getText();
+        if(navigator.vibrate) navigator.vibrate([100,50,100]);
+        stopCamera();
+        document.getElementById('manualCode').value = code;
+        searchCode(code);
+        return;
+      }
+    }catch(e){}
+    if(streamActive) scanInterval = setTimeout(tryScan, 80);
+  }
+  tryScan();
+}
+
+function startCamera(){
+  buildCamUI();
+  navigator.mediaDevices.getUserMedia({
+    video:{
+      facingMode:{ideal:'environment'},
+      width:{ideal:1920}, height:{ideal:1080},
+      focusMode:'continuous'
+    }
+  }).then(function(stream){
+    videoStream = stream;
+    var track = stream.getVideoTracks()[0];
+    // 연속 자동초점 요청
+    if(track && track.applyConstraints){
+      track.applyConstraints({
+        advanced:[{focusMode:'continuous'},{exposureMode:'continuous'},{whiteBalanceMode:'continuous'}]
+      }).catch(function(){});
+    }
+    var v = document.getElementById('videoEl');
+    v.srcObject = stream;
+    v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block;';
+    v.play().then(function(){
+      streamActive = true;
+      waitForZXing();
+    });
+  }).catch(function(err){
+    var o = document.getElementById('camOverlay');
+    if(o) document.body.removeChild(o);
+    alert(err.name==='NotFoundError' ? T.camError2 : T.camError1);
   });
 }
 
 function stopCamera(){
-  streamActive=false;
-  torchOn=false;
-  currentZoom=1;
-  if(codeReader){try{codeReader.reset();}catch(e){}codeReader=null;}
-  if(v&&v.srcObject){v.srcObject.getTracks().forEach(function(t){t.stop();});v.srcObject=null;}
-  v.style.display='none';
-  var o=document.getElementById('camOverlay');
-  if(o){
-    // restore video to body before removing overlay
-    document.body.appendChild(v);
-    document.body.removeChild(o);
+  streamActive = false;
+  torchOn = false;
+  currentZoom = 1;
+  if(scanInterval){ clearTimeout(scanInterval); scanInterval=null; }
+  if(videoStream){
+    videoStream.getTracks().forEach(function(t){t.stop();});
+    videoStream = null;
   }
+  var v = document.getElementById('videoEl');
+  if(v){ v.srcObject=null; v.style.display='none'; document.body.appendChild(v); }
+  var o = document.getElementById('camOverlay');
+  if(o) document.body.removeChild(o);
 }
 
 function handleFile(input){
