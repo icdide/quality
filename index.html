@@ -294,17 +294,33 @@ function loadXLSX() {
     .then(function(buf){
       var wb = XLSX.read(buf, {type:'array', raw:false, cellText:false});
       var ws = wb.Sheets[wb.SheetNames[0]];
-      var rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
       var newDB = [];
       for(var i=1; i<rows.length; i++){
         var row = rows[i];
-        var code = (row[0]||'').toString().trim();
+        // 바코드: raw:true로 읽어서 셀 원본값 사용, 숫자면 정수 변환
+        var rawCode = row[0];
+        var code = '';
+        if(rawCode === undefined || rawCode === null || rawCode === '') continue;
+        if(typeof rawCode === 'number'){
+          // 부동소수점 정밀도 문제 해결: 셀 주소로 원본 텍스트 재확인
+          var cellAddr = XLSX.utils.encode_cell({r:i, c:0});
+          var cell = ws[cellAddr];
+          if(cell && cell.w) {
+            // w: 셀에 표시된 텍스트 (서식 적용된 값)
+            code = cell.w.replace(/,/g,'').trim();
+          } else {
+            // BigInt로 정수 변환 (부동소수점 오차 제거)
+            try{ code = BigInt(rawCode).toString(); }
+            catch(ex){ code = Math.round(rawCode).toString(); }
+          }
+        } else {
+          code = rawCode.toString().trim();
+        }
+        if(!code) continue;
         var name = (row[1]||'').toString().trim();
         var url  = (row[2]||'').toString().trim();
-        if(!code || !url) continue;
-        if(/^[\d.]+[eE][+\-]?\d+$/.test(code)){
-          try{ code = BigInt(Math.round(parseFloat(code))).toString(); }catch(ex){}
-        }
+        if(!url) continue;
         newDB.push({code:code, name:name, url:url});
       }
       if(newDB.length > 0){
