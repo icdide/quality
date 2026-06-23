@@ -221,7 +221,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 var T = {
   scan: '\uc2a4\uce94',
@@ -374,9 +374,7 @@ function buildCamUI(){
   overlay.id = 'camOverlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;';
 
-  var v = document.getElementById('videoEl');
-  v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;display:block;';
-  overlay.appendChild(v);
+  // html5-qrcode manages its own video element inside #html5qr-scan
 
   // Header
   var hdr = document.createElement('div');
@@ -446,95 +444,86 @@ function buildCamUI(){
 
 function startCamera(){
   buildCamUI();
-  var constraints = {
-    video: {
-      facingMode: {ideal: 'environment'},
-      width: {ideal: 1920},
-      height: {ideal: 1080},
-      advanced: [{focusMode: 'continuous'}]
-    }
-  };
-  navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
-    var track = stream.getVideoTracks()[0];
-    if(track && track.applyConstraints){
-      track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(function(){});
-    }
-    var v = document.getElementById('videoEl');
-    v.srcObject = stream;
-    v.play();
-    streamActive = true;
-    waitForZXing(stream);
-  }).catch(function(err){
-    var o = document.getElementById('camOverlay');
-    if(o){ document.body.removeChild(o); }
-    var v = document.getElementById('videoEl');
-    v.style.display = 'none';
-    document.body.appendChild(v);
-    alert(err.name==='NotFoundError' ? T.camError2 : T.camError1);
-  });
+  streamActive = true;
+  waitForZXing(null);
 }
 
 function waitForZXing(stream){
-  if(typeof ZXing==='undefined'){setTimeout(function(){waitForZXing(stream);},300);return;}
-  try{
-    var hints = new Map();
-    var formats = [
-      ZXing.BarcodeFormat.QR_CODE,
-      ZXing.BarcodeFormat.CODE_39,
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.EAN_8,
-      ZXing.BarcodeFormat.UPC_A,
-      ZXing.BarcodeFormat.UPC_E,
-      ZXing.BarcodeFormat.ITF,
-      ZXing.BarcodeFormat.DATA_MATRIX,
-      ZXing.BarcodeFormat.CODABAR,
-      ZXing.BarcodeFormat.CODE_93
-    ];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    codeReader = new ZXing.BrowserMultiFormatReader(hints, 100);
-    var v = document.getElementById('videoEl');
-    codeReader.decodeFromVideoElement(v, function(result, err){
-      if(result && streamActive){
-        streamActive = false;
-        var code = result.getText();
-        stopCamera();
-        document.getElementById('manualCode').value = code;
-        searchCode(code);
-        if(navigator.vibrate) navigator.vibrate([100,50,100]);
-      }
-    });
-  }catch(e){console.error(e);}
+  // html5-qrcode handles its own video - stop the stream we started
+  if(stream){ stream.getTracks().forEach(function(t){t.stop();}); }
+  if(typeof Html5Qrcode === 'undefined'){
+    setTimeout(function(){ waitForZXing(null); }, 300); return;
+  }
+  // Create scan div inside overlay
+  var overlay = document.getElementById('camOverlay');
+  var scanDiv = document.createElement('div');
+  scanDiv.id = 'html5qr-scan';
+  scanDiv.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;';
+  // Insert before header (z-index layering)
+  overlay.insertBefore(scanDiv, overlay.firstChild);
+
+  codeReader = new Html5Qrcode('html5qr-scan');
+  var config = {
+    fps: 15,
+    qrbox: { width: 250, height: 200 },
+    aspectRatio: window.innerHeight / window.innerWidth,
+    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.DATA_MATRIX,
+      Html5QrcodeSupportedFormats.CODABAR,
+      Html5QrcodeSupportedFormats.CODE_93
+    ]
+  };
+
+  codeReader.start(
+    { facingMode: 'environment' },
+    config,
+    function(code, result){
+      if(!streamActive) return;
+      streamActive = false;
+      stopCamera();
+      document.getElementById('manualCode').value = code;
+      searchCode(code);
+      if(navigator.vibrate) navigator.vibrate([100,50,100]);
+    },
+    function(err){ /* scan attempt failed - keep trying */ }
+  ).catch(function(e){ console.error('html5qrcode start error:', e); });
 }
 
 var torchOn = false;
 function toggleTorch(){
-  var track = document.getElementById('videoEl').srcObject;
-  if(!track) return;
-  var t = track.getVideoTracks()[0];
-  if(!t) return;
+  if(!codeReader) return;
   torchOn = !torchOn;
-  t.applyConstraints({advanced:[{torch: torchOn}]}).catch(function(){
-    document.getElementById('lbl-torch').textContent = '지원안됨';
+  codeReader.applyVideoConstraints({
+    advanced: [{ torch: torchOn }]
+  }).catch(function(){
+    var btn = document.getElementById('torchBtn');
+    if(btn) btn.innerHTML = '<i class="ti ti-flashlight-off"></i> 지원안됨';
+    torchOn = false;
   });
-  document.getElementById('lbl-torch').textContent = torchOn ? '플래시 ON' : '플래시';
+  var btn = document.getElementById('torchBtn');
+  if(btn) btn.innerHTML = torchOn
+    ? '<i class="ti ti-flashlight"></i> 플래시 ON'
+    : '<i class="ti ti-flashlight"></i> 플래시';
 }
 
 var currentZoom = 1;
 function setZoom(z){
   currentZoom = z;
-  var v = document.getElementById('videoEl');
-  if(!v || !v.srcObject) return;
-  var t = v.srcObject.getVideoTracks()[0];
-  if(t){
-    // 네이티브 줌 (화질 유지, ZXing 영향 없음)
-    t.applyConstraints({advanced:[{zoom: z}]}).catch(function(){
-      // 미지원 기기: 안내만 표시
-      console.log('Native zoom not supported');
-    });
+  if(codeReader){
+    codeReader.applyVideoConstraints({
+      advanced: [{ zoom: z }]
+    }).catch(function(){ console.log('Zoom not supported'); });
   }
-  // 버튼 스타일 업데이트
   [1, 1.5, 2].forEach(function(zv){
     var btn = document.getElementById('zoomBtn'+zv);
     if(!btn) return;
