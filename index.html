@@ -273,9 +273,7 @@ function initLabels() {
   document.getElementById('lbl-active').textContent = T.active;
   document.getElementById('searchInput').placeholder = T.searchPlaceholder;
   document.getElementById('docCount').textContent = T.total + DB.length + T.count;
-  document.getElementById('lbl-cam-header').textContent = T.camHeader;
-  document.getElementById('lbl-cam-hint').textContent = T.camHint;
-  document.getElementById('lbl-cancel').textContent = T.cancel;
+  // camera UI built dynamically
 }
 
 var DB = [];
@@ -370,34 +368,102 @@ function searchCode(code) {
 
 function openPDF(url){window.open(url,'_blank');}
 
+function buildCamUI(){
+  if(document.getElementById('camOverlay')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'camOverlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;';
+
+  var v = document.getElementById('videoEl');
+  v.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;display:block;';
+  overlay.appendChild(v);
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'position:absolute;top:0;left:0;right:0;padding:44px 16px 14px;background:linear-gradient(to bottom,rgba(0,0,0,0.75),transparent);display:flex;align-items:center;gap:10px;z-index:20;';
+  hdr.innerHTML = '<i class="ti ti-camera" style="color:#fff;font-size:20px;"></i>'
+    + '<span style="color:#fff;font-size:15px;font-weight:600;">바코드 스캔</span>';
+  var closeBtn = document.createElement('button');
+  closeBtn.style.cssText = 'margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+  closeBtn.innerHTML = '<i class="ti ti-x"></i>';
+  closeBtn.onclick = stopCamera;
+  hdr.appendChild(closeBtn);
+  overlay.appendChild(hdr);
+
+  // Scan frame
+  var frame = document.createElement('div');
+  frame.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:220px;height:220px;z-index:20;';
+  frame.innerHTML =
+    '<div style="position:absolute;top:0;left:0;width:34px;height:34px;border-top:3px solid #fff;border-left:3px solid #fff;"></div>'+
+    '<div style="position:absolute;top:0;right:0;width:34px;height:34px;border-top:3px solid #fff;border-right:3px solid #fff;"></div>'+
+    '<div style="position:absolute;bottom:0;left:0;width:34px;height:34px;border-bottom:3px solid #fff;border-left:3px solid #fff;"></div>'+
+    '<div style="position:absolute;bottom:0;right:0;width:34px;height:34px;border-bottom:3px solid #fff;border-right:3px solid #fff;"></div>'+
+    '<div id="camScanLine" style="position:absolute;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,80,80,0.95),transparent);animation:csl 2s ease-in-out infinite;"></div>';
+  overlay.appendChild(frame);
+
+  // Hint text
+  var hint = document.createElement('div');
+  hint.style.cssText = 'position:absolute;top:calc(50% + 60px);left:0;right:0;text-align:center;color:rgba(255,255,255,0.8);font-size:12px;z-index:20;transform:translateY(-60%);';
+  hint.textContent = '바코드를 프레임 안에 맞춰주세요';
+  overlay.appendChild(hint);
+
+  // Bottom buttons
+  var btm = document.createElement('div');
+  btm.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:16px 16px 40px;background:linear-gradient(to top,rgba(0,0,0,0.85) 60%,transparent);z-index:20;display:flex;gap:10px;';
+
+  var btnStyle = 'flex:1;padding:12px 6px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.1);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.style.cssText = btnStyle;
+  cancelBtn.innerHTML = '<i class="ti ti-x"></i> 취소';
+  cancelBtn.onclick = stopCamera;
+
+  var torchBtn = document.createElement('button');
+  torchBtn.id = 'torchBtn';
+  torchBtn.style.cssText = btnStyle;
+  torchBtn.innerHTML = '<i class="ti ti-flashlight"></i> 플래시';
+  torchBtn.onclick = toggleTorch;
+
+  var focusBtn = document.createElement('button');
+  focusBtn.style.cssText = btnStyle;
+  focusBtn.innerHTML = '<i class="ti ti-focus-2"></i> 포커스';
+  focusBtn.onclick = focusCamera;
+
+  btm.appendChild(cancelBtn);
+  btm.appendChild(torchBtn);
+  btm.appendChild(focusBtn);
+  overlay.appendChild(btm);
+
+  document.body.appendChild(overlay);
+}
+
 function startCamera(){
-  var camEl=document.getElementById('cameraSection');
-  camEl.classList.add('active');
+  buildCamUI();
   var constraints = {
     video: {
       facingMode: {ideal: 'environment'},
       width: {ideal: 1920},
       height: {ideal: 1080},
-      focusMode: {ideal: 'continuous'},
-      advanced: [{focusMode: 'continuous'}, {torch: false}]
+      advanced: [{focusMode: 'continuous'}]
     }
   };
   navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
-    // 연속 자동포커스 활성화
     var track = stream.getVideoTracks()[0];
-    if(track && track.applyConstraints) {
-      track.applyConstraints({
-        advanced: [{focusMode: 'continuous'}]
-      }).catch(function(){});
+    if(track && track.applyConstraints){
+      track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(function(){});
     }
-    var v=document.getElementById('videoEl');
-    v.srcObject=stream;
+    var v = document.getElementById('videoEl');
+    v.srcObject = stream;
     v.play();
-    streamActive=true;
+    streamActive = true;
     waitForZXing(stream);
   }).catch(function(err){
-    camEl.classList.remove('active');
-    alert(err.name==='NotFoundError'?T.camError2:T.camError1);
+    var o = document.getElementById('camOverlay');
+    if(o){ document.body.removeChild(o); }
+    var v = document.getElementById('videoEl');
+    v.style.display = 'none';
+    document.body.appendChild(v);
+    alert(err.name==='NotFoundError' ? T.camError2 : T.camError1);
   });
 }
 
@@ -464,10 +530,17 @@ function focusCamera(){
 
 function stopCamera(){
   streamActive=false;
+  torchOn=false;
   if(codeReader){try{codeReader.reset();}catch(e){}codeReader=null;}
   var v=document.getElementById('videoEl');
   if(v&&v.srcObject){v.srcObject.getTracks().forEach(function(t){t.stop();});v.srcObject=null;}
-  document.getElementById('cameraSection').classList.remove('active');
+  v.style.display='none';
+  var o=document.getElementById('camOverlay');
+  if(o){
+    // restore video to body before removing overlay
+    document.body.appendChild(v);
+    document.body.removeChild(o);
+  }
 }
 
 function handleFile(input){
