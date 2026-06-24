@@ -116,7 +116,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="logo-sub">QUALITY ASSURANCE Dep&#x27;t</div>
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.02</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.03</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -449,21 +449,26 @@ function buildCamUI(){
   torchBtn.innerHTML = '<i class="ti ti-flashlight"></i> 플래시';
   torchBtn.onclick = toggleTorch;
 
-  // Zoom buttons
-  var zoomWrap = document.createElement('div');
-  zoomWrap.style.cssText = 'flex:2;display:flex;gap:6px;';
-  [1, 1.5, 2].forEach(function(z){
-    var zBtn = document.createElement('button');
-    zBtn.id = 'zoomBtn' + z;
-    zBtn.style.cssText = btnStyle + (z===1 ? 'background:rgba(255,255,255,0.3);border:2px solid rgba(255,255,255,0.9);font-weight:700;' : '');
-    zBtn.textContent = z + 'x';
-    zBtn.onclick = function(){ setZoom(z); };
-    zoomWrap.appendChild(zBtn);
-  });
-
-  btm.appendChild(cancelBtn);
-  btm.appendChild(torchBtn);
-  btm.appendChild(zoomWrap);
+  var isIOScam = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if(!isIOScam){
+    // Android: 줌 버튼
+    var zoomWrap = document.createElement('div');
+    zoomWrap.style.cssText = 'flex:2;display:flex;gap:6px;';
+    [1, 1.5, 2].forEach(function(z){
+      var zBtn = document.createElement('button');
+      zBtn.id = 'zoomBtn' + z;
+      zBtn.style.cssText = btnStyle + (z===1 ? 'background:rgba(255,255,255,0.3);border:2px solid rgba(255,255,255,0.9);font-weight:700;' : '');
+      zBtn.textContent = z + 'x';
+      zBtn.onclick = function(){ setZoom(z); };
+      zoomWrap.appendChild(zBtn);
+    });
+    btm.appendChild(cancelBtn);
+    btm.appendChild(torchBtn);
+    btm.appendChild(zoomWrap);
+  } else {
+    // iOS: 취소 버튼만
+    btm.appendChild(cancelBtn);
+  }
   overlay.appendChild(btm);
 
   document.body.appendChild(overlay);
@@ -777,24 +782,23 @@ function handleIOSPhoto(input){
       }
 
       if(decoded){
+        // sessionStorage에 저장 (페이지 포커스 복귀 후에도 유지)
+        try{ sessionStorage.setItem('ehwa_scan_code', decoded); }catch(e){}
         document.getElementById('manualCode').value = decoded;
-        // DB에서 바로 찾아서 자동으로 PDF 열기
+        searchCode(decoded);
+        // PDF 자동 열기
         var found = null;
         for(var i=0;i<DB.length;i++){
           if(DB[i].code === decoded){ found=DB[i]; break; }
         }
         if(found){
-          // searchCode로 UI 표시 후 바로 PDF 오픈
-          searchCode(decoded);
-          setTimeout(function(){ window.location.href = found.url; }, 500);
-        } else {
-          searchCode(decoded);
+          setTimeout(function(){ window.location.href = found.url; }, 800);
         }
       } else {
         card.className = 'result-card notfound';
         document.getElementById('resultIco').textContent = '✗';
-        document.getElementById('resultStatus').textContent = '바코드를 인식하지 못했습니다. 다시 찍어주세요.';
-        document.getElementById('resultDetail').innerHTML = '<div class="result-row"><span class="rkey">팁</span><span class="rval">바코드가 화면 중앙에 오도록 찍어주세요</span></div>';
+        document.getElementById('resultStatus').textContent = '바코드 인식 실패 - 다시 찍어주세요';
+        document.getElementById('resultDetail').innerHTML = '<div class="result-row"><span class="rkey">팁</span><span class="rval">바코드를 화면 중앙에 크게 배치 후 찍기</span></div>';
       }
     }
     tryZXingPhoto();
@@ -879,6 +883,20 @@ function goScan(code){
 
 initLabels();
 loadCSV();
+
+// iOS 스캔 후 페이지 복귀 시 코드 복원
+(function(){
+  try{
+    var saved = sessionStorage.getItem('ehwa_scan_code');
+    if(saved){
+      sessionStorage.removeItem('ehwa_scan_code');
+      setTimeout(function(){
+        document.getElementById('manualCode').value = saved;
+        searchCode(saved);
+      }, 1000);
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
