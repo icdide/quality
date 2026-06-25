@@ -103,7 +103,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="logo-sub">QUALITY ASSURANCE Dep&#x27;t</div>
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.05</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.06</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -478,24 +478,59 @@ function setZoom(z){
   });
 }
 
-// ── iOS 카메라: input capture 방식 (가장 안정적) ──
+// ── iOS 카메라: visibilitychange 방식 (가장 안정적) ──
 function startIOSCamera(){
-  var input = document.getElementById('iosPhotoInput');
-  if(!input){
-    input = document.createElement('input');
-    input.type = 'file';
-    input.id = 'iosPhotoInput';
-    input.accept = 'image/*';
-    input.setAttribute('capture','environment');
-    input.style.display = 'none';
-    document.body.appendChild(input);
-    input.addEventListener('change', function(){
-      if(this.files && this.files[0]){
-        handleIOSPhoto(this.files[0]);
+  // visibilitychange 이벤트로 카메라 앱 복귀 감지
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.setAttribute('capture', 'environment');
+  input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px;';
+  document.body.appendChild(input);
+
+  // 방법1: change 이벤트
+  input.addEventListener('change', function(){
+    if(this.files && this.files[0]){
+      var file = this.files[0];
+      document.body.removeChild(input);
+      handleIOSPhoto(file);
+    } else {
+      document.body.removeChild(input);
+    }
+  });
+
+  // 방법2: visibilitychange - 카메라에서 돌아올 때 감지
+  var visHandler = function(){
+    if(document.visibilityState === 'visible'){
+      document.removeEventListener('visibilitychange', visHandler);
+      setTimeout(function(){
+        if(input.files && input.files[0]){
+          var file = input.files[0];
+          if(document.body.contains(input)) document.body.removeChild(input);
+          handleIOSPhoto(file);
+        } else {
+          if(document.body.contains(input)) document.body.removeChild(input);
+        }
+      }, 300);
+    }
+  };
+  document.addEventListener('visibilitychange', visHandler);
+
+  // 방법3: focus 이벤트 (window focus 복귀)
+  var focusHandler = function(){
+    window.removeEventListener('focus', focusHandler);
+    setTimeout(function(){
+      if(input.files && input.files[0]){
+        var file = input.files[0];
+        if(document.body.contains(input)) document.body.removeChild(input);
+        handleIOSPhoto(file);
+      } else {
+        if(document.body.contains(input)) document.body.removeChild(input);
       }
-      this.value = '';
-    });
-  }
+    }, 500);
+  };
+  window.addEventListener('focus', focusHandler);
+
   input.click();
 }
 
@@ -507,17 +542,22 @@ function handleIOSPhoto(file){
   document.getElementById('resultStatus').textContent = T.scanning;
   document.getElementById('resultDetail').innerHTML = '';
   document.getElementById('openBtnWrap').innerHTML = '';
+
   var img = new Image();
-  var url = URL.createObjectURL(file);
+  var objectUrl = URL.createObjectURL(file);
   img.onload = function(){
-    URL.revokeObjectURL(url);
-    if(typeof ZXing === 'undefined'){
-      setTimeout(function(){ decodeImage(img); }, 500);
-    } else {
+    URL.revokeObjectURL(objectUrl);
+    function tryDecode(){
+      if(typeof ZXing === 'undefined'){ setTimeout(tryDecode, 300); return; }
       decodeImage(img);
     }
+    tryDecode();
   };
-  img.src = url;
+  img.onerror = function(){
+    URL.revokeObjectURL(objectUrl);
+    document.getElementById('resultStatus').textContent = T.scanFail;
+  };
+  img.src = objectUrl;
 }
 
 function decodeImage(img){
@@ -533,53 +573,63 @@ function decodeImage(img){
   ]);
   var reader = new ZXing.MultiFormatReader();
   reader.setHints(hints);
-  var scales = [1, 0.75, 0.5, 0.25];
+
+  // 여러 해상도 + 여러 영역으로 시도
   var decoded = null;
-  for(var si=0; si<scales.length && !decoded; si++){
-    var sc=scales[si];
-    var w=Math.floor(img.width*sc), h=Math.floor(img.height*sc);
-    if(w<10||h<10) continue;
-    var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-    var ct=cv.getContext('2d'); ct.drawImage(img,0,0,w,h);
-    decoded=tryDecodeCanvas(ct,w,h,reader); if(decoded) break;
-    // 수평 중앙띠
-    var bh=Math.floor(h*0.5);
-    var c2=document.createElement('canvas'); c2.width=w; c2.height=bh;
-    c2.getContext('2d').drawImage(img,0,Math.floor(img.height*0.25),img.width,Math.floor(img.height*0.5),0,0,w,bh);
-    decoded=tryDecodeCanvas(c2.getContext('2d'),w,bh,reader); if(decoded) break;
-    // 중앙 80%
-    var cw=Math.floor(w*0.8),ch=Math.floor(h*0.8);
-    var c3=document.createElement('canvas'); c3.width=cw; c3.height=ch;
-    c3.getContext('2d').drawImage(img,Math.floor(img.width*0.1),Math.floor(img.height*0.1),Math.floor(img.width*0.8),Math.floor(img.height*0.8),0,0,cw,ch);
-    decoded=tryDecodeCanvas(c3.getContext('2d'),cw,ch,reader); if(decoded) break;
+  var attempts = [
+    // [scale, cropX%, cropY%, cropW%, cropH%]
+    [1,    0,    0,    1,    1   ],  // 전체 원본
+    [0.5,  0,    0,    1,    1   ],  // 전체 50%
+    [1,    0,    0.25, 1,    0.5 ],  // 수평 중앙띠
+    [1,    0.1,  0.1,  0.8,  0.8 ],  // 중앙 80%
+    [0.75, 0,    0,    1,    1   ],  // 전체 75%
+    [0.25, 0,    0,    1,    1   ],  // 전체 25% (작게)
+    [1,    0,    0.1,  1,    0.8 ],  // 상하 10% 제외
+    [0.5,  0,    0.25, 1,    0.5 ],  // 수평띠 50%
+  ];
+
+  for(var ai=0; ai<attempts.length && !decoded; ai++){
+    var a = attempts[ai];
+    var sc=a[0], cx=a[1], cy=a[2], cw=a[3], ch=a[4];
+    var sw=Math.floor(img.width*cw), sh=Math.floor(img.height*ch);
+    var dw=Math.floor(sw*sc), dh=Math.floor(sh*sc);
+    if(dw<10||dh<10) continue;
+    var canvas=document.createElement('canvas');
+    canvas.width=dw; canvas.height=dh;
+    var ctx=canvas.getContext('2d');
+    ctx.drawImage(img,
+      Math.floor(img.width*cx), Math.floor(img.height*cy), sw, sh,
+      0, 0, dw, dh);
+    decoded = tryDecodeCanvas(ctx, dw, dh, reader);
   }
+
   if(decoded){
-    document.getElementById('manualCode').value=decoded;
+    document.getElementById('manualCode').value = decoded;
     searchCode(decoded);
-    var found=null;
+    var found = null;
     for(var i=0;i<DB.length;i++){if(DB[i].code===decoded){found=DB[i];break;}}
-    if(found) setTimeout(function(){ window.location.href=found.url; },800);
+    if(found) setTimeout(function(){ window.location.href=found.url; }, 800);
   } else {
-    var card=document.getElementById('resultCard');
-    card.className='result-card notfound';
-    document.getElementById('resultIco').textContent='✗';
-    document.getElementById('resultStatus').textContent=T.scanFail;
-    document.getElementById('resultDetail').innerHTML=
-      '<div class="result-row"><span class="rkey">팁</span><span class="rval">바코드를 화면 중앙에 크게 배치 후 찍기</span></div>';
+    var card = document.getElementById('resultCard');
+    card.className = 'result-card notfound';
+    document.getElementById('resultIco').textContent = '✗';
+    document.getElementById('resultStatus').textContent = T.scanFail;
+    document.getElementById('resultDetail').innerHTML =
+      '<div class="result-row"><span class="rkey">팁</span>'+
+      '<span class="rval">바코드를 화면 중앙에 크게 배치 후 찍기</span></div>';
   }
 }
 
-function tryDecodeCanvas(ctx,w,h,reader){
+function tryDecodeCanvas(ctx, w, h, reader){
   try{
-    var imgData=ctx.getImageData(0,0,w,h);
-    var lum=new ZXing.RGBLuminanceSource(imgData.data,w,h);
-    var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
-    var result=reader.decode(bmp);
+    var imgData = ctx.getImageData(0,0,w,h);
+    var lum = new ZXing.RGBLuminanceSource(imgData.data,w,h);
+    var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
+    var result = reader.decode(bmp);
     if(result) return result.getText();
   }catch(e){}
   return null;
 }
-
 
 // ── 데이터 로드 ──
 function loadXLSX(){
