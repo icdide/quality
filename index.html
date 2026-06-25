@@ -103,7 +103,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="logo-sub">QUALITY ASSURANCE Dep&#x27;t</div>
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.04</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.05</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -450,7 +450,24 @@ function setZoom(z){
   currentZoom=z;
   if(videoStream){
     var t=videoStream.getVideoTracks()[0];
-    if(t) t.applyConstraints({advanced:[{zoom:z}]}).catch(function(){});
+    if(t){
+      // 지원 여부 확인 후 줌 적용
+      var caps = t.getCapabilities ? t.getCapabilities() : {};
+      if(caps.zoom){
+        var minZ = caps.zoom.min||1, maxZ = caps.zoom.max||z;
+        var clampedZ = Math.min(Math.max(z, minZ), maxZ);
+        t.applyConstraints({advanced:[{zoom:clampedZ}]}).catch(function(e){
+          console.log('zoom not supported:', e);
+        });
+      } else {
+        // CSS 줌 폴백
+        var v = document.getElementById('videoEl');
+        if(v){
+          v.style.transform = z>1 ? 'scale('+z+')' : '';
+          v.style.transformOrigin = 'center center';
+        }
+      }
+    }
   }
   [1,1.5,2].forEach(function(zv){
     var btn=document.getElementById('zoomBtn'+zv);
@@ -461,151 +478,108 @@ function setZoom(z){
   });
 }
 
-// ── iOS 카메라: getUserMedia 실시간 스트림 + ZXing ──
-var iosStream=null, iosScanInterval=null, iosActive=false;
-
+// ── iOS 카메라: input capture 방식 (가장 안정적) ──
 function startIOSCamera(){
-  // 풀스크린 오버레이 생성
-  var overlay=document.createElement('div');
-  overlay.id='iosCamOverlay';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;display:flex;flex-direction:column;';
-
-  // 헤더
-  var hdr=document.createElement('div');
-  hdr.style.cssText='padding:44px 16px 12px;background:linear-gradient(to bottom,rgba(0,0,0,0.8),transparent);display:flex;align-items:center;gap:10px;flex-shrink:0;';
-  hdr.innerHTML='<i class="ti ti-camera" style="color:#fff;font-size:20px;"></i><span style="color:#fff;font-size:15px;font-weight:600;">'+T.camHeader+'</span>';
-  var closeBtn=document.createElement('button');
-  closeBtn.style.cssText='margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;';
-  closeBtn.innerHTML='<i class="ti ti-x"></i>';
-  closeBtn.onclick=stopIOSCamera;
-  hdr.appendChild(closeBtn);
-  overlay.appendChild(hdr);
-
-  // 비디오
-  var vid=document.createElement('video');
-  vid.id='iosVideo';
-  vid.setAttribute('autoplay','');
-  vid.setAttribute('playsinline','');
-  vid.setAttribute('muted','');
-  vid.style.cssText='width:100%;flex:1;object-fit:cover;';
-  overlay.appendChild(vid);
-
-  // 스캔 프레임 오버레이
-  var frameWrap=document.createElement('div');
-  frameWrap.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:10;pointer-events:none;';
-  frameWrap.innerHTML=
-    '<div style="width:220px;height:220px;position:relative;margin-top:-60px;">'+
-    '<div style="position:absolute;top:0;left:0;width:34px;height:34px;border-top:3px solid #fff;border-left:3px solid #fff;"></div>'+
-    '<div style="position:absolute;top:0;right:0;width:34px;height:34px;border-top:3px solid #fff;border-right:3px solid #fff;"></div>'+
-    '<div style="position:absolute;bottom:0;left:0;width:34px;height:34px;border-bottom:3px solid #fff;border-left:3px solid #fff;"></div>'+
-    '<div style="position:absolute;bottom:0;right:0;width:34px;height:34px;border-bottom:3px solid #fff;border-right:3px solid #fff;"></div>'+
-    '<div style="position:absolute;left:0;right:0;height:2px;top:50%;background:linear-gradient(to right,transparent,rgba(255,80,80,0.95),transparent);animation:csl 2s ease-in-out infinite;"></div>'+
-    '</div>';
-  overlay.appendChild(frameWrap);
-
-  // 힌트
-  var hint=document.createElement('div');
-  hint.style.cssText='position:absolute;bottom:120px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.85);font-size:13px;z-index:11;';
-  hint.id='iosHint';
-  hint.textContent=T.camHint;
-  overlay.appendChild(hint);
-
-  // 하단 버튼
-  var btm=document.createElement('div');
-  btm.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:16px 16px 44px;background:linear-gradient(to top,rgba(0,0,0,0.85) 60%,transparent);z-index:11;display:flex;gap:10px;';
-  var btnStyle='flex:1;padding:13px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;';
-  var cancelBtn=document.createElement('button');
-  cancelBtn.style.cssText=btnStyle;
-  cancelBtn.innerHTML='<i class="ti ti-x"></i> '+T.cancel;
-  cancelBtn.onclick=stopIOSCamera;
-  btm.appendChild(cancelBtn);
-  overlay.appendChild(btm);
-
-  document.body.appendChild(overlay);
-
-  // getUserMedia 시작
-  navigator.mediaDevices.getUserMedia({
-    video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
-  }).then(function(stream){
-    iosStream=stream;
-    vid.srcObject=stream;
-    vid.play().then(function(){
-      iosActive=true;
-      document.getElementById('iosHint').textContent=T.camHint;
-      // ZXing으로 스캔 시작
-      setTimeout(function(){startIOSScan(vid);},1000);
-    }).catch(function(e){console.error('iOS video play error:',e);});
-  }).catch(function(err){
-    stopIOSCamera();
-    alert(T.camErr+'\n('+err.name+')');
-  });
-}
-
-function startIOSScan(vid){
-  if(!iosActive) return;
-  if(typeof ZXing==='undefined'){setTimeout(function(){startIOSScan(vid);},300);return;}
-
-  var hints=new Map();
-  hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
-    ZXing.BarcodeFormat.QR_CODE,ZXing.BarcodeFormat.CODE_128,ZXing.BarcodeFormat.CODE_39,
-    ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,
-    ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.ITF,ZXing.BarcodeFormat.CODABAR,
-    ZXing.BarcodeFormat.CODE_93,ZXing.BarcodeFormat.DATA_MATRIX
-  ]);
-  var reader=new ZXing.MultiFormatReader();
-  reader.setHints(hints);
-  var canvas=document.createElement('canvas');
-  var ctx=canvas.getContext('2d');
-
-  function scan(){
-    if(!iosActive) return;
-    if(!vid.videoWidth||vid.readyState<2){iosScanInterval=setTimeout(scan,200);return;}
-    var vw=vid.videoWidth, vh=vid.videoHeight;
-    canvas.width=vw; canvas.height=vh;
-    ctx.drawImage(vid,0,0,vw,vh);
-    var decoded=null;
-    // 전체 → 중앙 80% → 수평띠 순으로 시도
-    var regions=[
-      [0,0,vw,vh],
-      [vw*0.1,vh*0.1,vw*0.8,vh*0.8],
-      [0,vh*0.25,vw,vh*0.5]
-    ];
-    for(var ri=0;ri<regions.length&&!decoded;ri++){
-      var r=regions[ri];
-      var cw2=Math.floor(r[2]),ch2=Math.floor(r[3]);
-      if(cw2<10||ch2<10) continue;
-      var c2=document.createElement('canvas');
-      c2.width=cw2;c2.height=ch2;
-      var cx2=c2.getContext('2d');
-      cx2.drawImage(vid,Math.floor(r[0]),Math.floor(r[1]),cw2,ch2,0,0,cw2,ch2);
-      try{
-        var imgData=cx2.getImageData(0,0,cw2,ch2);
-        var lum=new ZXing.RGBLuminanceSource(imgData.data,cw2,ch2);
-        var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
-        var result=reader.decode(bmp);
-        if(result) decoded=result.getText();
-      }catch(e){}
-    }
-    if(decoded&&iosActive){
-      iosActive=false;
-      stopIOSCamera();
-      document.getElementById('manualCode').value=decoded;
-      searchCode(decoded);
-      return;
-    }
-    if(iosActive) iosScanInterval=setTimeout(scan,150);
+  var input = document.getElementById('iosPhotoInput');
+  if(!input){
+    input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'iosPhotoInput';
+    input.accept = 'image/*';
+    input.setAttribute('capture','environment');
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', function(){
+      if(this.files && this.files[0]){
+        handleIOSPhoto(this.files[0]);
+      }
+      this.value = '';
+    });
   }
-  scan();
+  input.click();
 }
 
-function stopIOSCamera(){
-  iosActive=false;
-  if(iosScanInterval){clearTimeout(iosScanInterval);iosScanInterval=null;}
-  if(iosStream){iosStream.getTracks().forEach(function(t){t.stop();});iosStream=null;}
-  var o=document.getElementById('iosCamOverlay');
-  if(o) document.body.removeChild(o);
+function handleIOSPhoto(file){
+  var card = document.getElementById('resultCard');
+  card.style.display = 'block';
+  card.className = 'result-card found';
+  document.getElementById('resultIco').textContent = '...';
+  document.getElementById('resultStatus').textContent = T.scanning;
+  document.getElementById('resultDetail').innerHTML = '';
+  document.getElementById('openBtnWrap').innerHTML = '';
+  var img = new Image();
+  var url = URL.createObjectURL(file);
+  img.onload = function(){
+    URL.revokeObjectURL(url);
+    if(typeof ZXing === 'undefined'){
+      setTimeout(function(){ decodeImage(img); }, 500);
+    } else {
+      decodeImage(img);
+    }
+  };
+  img.src = url;
 }
+
+function decodeImage(img){
+  var hints = new Map();
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+    ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,   ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E,   ZXing.BarcodeFormat.ITF,
+    ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.CODE_93,
+    ZXing.BarcodeFormat.DATA_MATRIX
+  ]);
+  var reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
+  var scales = [1, 0.75, 0.5, 0.25];
+  var decoded = null;
+  for(var si=0; si<scales.length && !decoded; si++){
+    var sc=scales[si];
+    var w=Math.floor(img.width*sc), h=Math.floor(img.height*sc);
+    if(w<10||h<10) continue;
+    var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    var ct=cv.getContext('2d'); ct.drawImage(img,0,0,w,h);
+    decoded=tryDecodeCanvas(ct,w,h,reader); if(decoded) break;
+    // 수평 중앙띠
+    var bh=Math.floor(h*0.5);
+    var c2=document.createElement('canvas'); c2.width=w; c2.height=bh;
+    c2.getContext('2d').drawImage(img,0,Math.floor(img.height*0.25),img.width,Math.floor(img.height*0.5),0,0,w,bh);
+    decoded=tryDecodeCanvas(c2.getContext('2d'),w,bh,reader); if(decoded) break;
+    // 중앙 80%
+    var cw=Math.floor(w*0.8),ch=Math.floor(h*0.8);
+    var c3=document.createElement('canvas'); c3.width=cw; c3.height=ch;
+    c3.getContext('2d').drawImage(img,Math.floor(img.width*0.1),Math.floor(img.height*0.1),Math.floor(img.width*0.8),Math.floor(img.height*0.8),0,0,cw,ch);
+    decoded=tryDecodeCanvas(c3.getContext('2d'),cw,ch,reader); if(decoded) break;
+  }
+  if(decoded){
+    document.getElementById('manualCode').value=decoded;
+    searchCode(decoded);
+    var found=null;
+    for(var i=0;i<DB.length;i++){if(DB[i].code===decoded){found=DB[i];break;}}
+    if(found) setTimeout(function(){ window.location.href=found.url; },800);
+  } else {
+    var card=document.getElementById('resultCard');
+    card.className='result-card notfound';
+    document.getElementById('resultIco').textContent='✗';
+    document.getElementById('resultStatus').textContent=T.scanFail;
+    document.getElementById('resultDetail').innerHTML=
+      '<div class="result-row"><span class="rkey">팁</span><span class="rval">바코드를 화면 중앙에 크게 배치 후 찍기</span></div>';
+  }
+}
+
+function tryDecodeCanvas(ctx,w,h,reader){
+  try{
+    var imgData=ctx.getImageData(0,0,w,h);
+    var lum=new ZXing.RGBLuminanceSource(imgData.data,w,h);
+    var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
+    var result=reader.decode(bmp);
+    if(result) return result.getText();
+  }catch(e){}
+  return null;
+}
+
 
 // ── 데이터 로드 ──
 function loadXLSX(){
