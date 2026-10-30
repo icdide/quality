@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -66,7 +66,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
 .notfound .result-status{color:#c62828;}
 .result-detail{background:rgba(255,255,255,0.65);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
 .result-row{display:flex;align-items:flex-start;margin-bottom:5px;}
-.rkey{font-size:11px;color:#888;width:60px;flex-shrink:0;padding-top:2px;}
+.rkey{font-size:11px;color:#888;width:78px;flex-shrink:0;padding-top:2px;}
 .rval{font-size:13px;font-weight:600;color:#111;word-break:break-all;}
 .rval.highlight{color:#1255b5;font-size:14px;}
 .info-box{background:#e3f2fd;border-radius:10px;padding:13px;margin-bottom:13px;font-size:13px;color:#0d47a1;line-height:1.8;border:1px solid #90caf9;}
@@ -88,6 +88,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
 .doc-name{font-size:14px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .doc-code{font-size:11px;color:#888;margin-top:2px;font-family:monospace;}
 .empty{text-align:center;padding:32px 20px;color:#aaa;font-size:14px;}
+.path-box{font-family:monospace;font-size:11px;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:8px 10px;margin:8px 0;word-break:break-all;color:#333;}
+.note-muted{font-size:11px;color:#888;line-height:1.5;margin-bottom:6px;}
+.match{padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed #cfd8dc;}
+.match:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.match .btn{margin-top:8px;margin-bottom:4px;}
 #videoEl{display:none;}
 @keyframes csl{0%,100%{top:0;opacity:0.4;}50%{top:210px;opacity:1;}}
 </style>
@@ -103,7 +108,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="logo-sub">QUALITY ASSURANCE Dep&#x27;t</div>
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.06</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.07</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -128,7 +133,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       </button>
       <div class="divider"><span id="lbl-or"></span></div>
       <div class="manual-row">
-        <input type="text" id="manualCode" inputmode="numeric" onkeydown="if(event.key==='Enter')searchCode()" />
+        <input type="text" id="manualCode" inputmode="text" autocapitalize="off" autocorrect="off" autocomplete="off" onkeydown="if(event.key==='Enter')searchCode()" />
         <button onclick="searchCode()"><i class="ti ti-search"></i></button>
       </div>
       <div class="result-card" id="resultCard">
@@ -178,34 +183,41 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
 var T = {
-  scan:'\uc2a4\uce94', upload:'\uc5c5\ub85c\ub4dc', list:'\ubaa9\ub85d',
-  scanTitle:'\ubc14\ucf54\ub4dc / QR \uc2a4\uce94',
-  scanSub:'\uce74\uba54\ub77c\ub85c \ucf54\ub4dc\ub97c \ube44\ucdb0\uc8fc\uc138\uc694',
-  camBtn:'\uce74\uba54\ub77c\ub85c \uc2a4\uce94',
-  camBtnIOS:'\uce74\uba54\ub77c\ub85c \ubc14\ucf54\ub4dc \ucc0d\uae30',
-  orText:'\ub610\ub294 \uc9c1\uc811 \uc785\ub825',
-  placeholder:'\ubc14\ucf54\ub4dc \ubc88\ud638 \uc785\ub825...',
-  infoBox:'<strong>\uc5d1\uc140 \ucf5c\ub7fc \ud615\uc2dd</strong><br>A\uc5f4: \ubc14\ucf54\ub4dc / QR \ubc88\ud638<br>B\uc5f4: \ubb38\uc11c\uba85<br>C\uc5f4: OneDrive PDF \ub9c1\ud06c',
-  uploadTitle:'\uc0c8 \uc5d1\uc140 \ud30c\uc77c \uc5c5\ub85c\ub4dc',
-  uploadSub:'.xlsx \ud30c\uc77c',
-  defaultFile:'data.xlsx', defaultMeta:'- \ud56d\ubaa9 \u00b7 \ud65c\uc131',
-  active:'\ud65c\uc131', refresh:'\uc0c8\ub85c\uace0\uce68',
-  searchPlaceholder:'\ubb38\uc11c\uba85 \ub610\ub294 \ubc14\ucf54\ub4dc \uac80\uc0c9...',
-  total:'\uc804\uccb4 ', count:'\uac1c',
-  found:'\uc9c0\ub3c4\uc11c\ub97c \ucc3e\uc558\uc2b5\ub2c8\ub2e4',
-  notfound:'\ud574\ub2f9 \ubc14\ucf54\ub4dc \uc9c0\ub3c4\uc11c \uc5c6\uc74c',
-  barcode:'\ubc14\ucf54\ub4dc', docname:'\ubb38\uc11c\uba85',
-  openPdf:'PDF \uc5f4\uae30 (OneDrive)',
-  noResult:'\uac80\uc0c9 \uacb0\uacfc\uac00 \uc5c6\uc2b5\ub2c8\ub2e4',
-  loading:'\ub370\uc774\ud130 \ubd88\ub7ec\uc624\ub294 \uc911...',
-  loadOk:'\uac1c \ud56d\ubaa9 \ub85c\ub4dc \uc644\ub8cc',
-  loadFail:'\ub85c\ub4dc \uc2e4\ud328: ',
-  camHeader:'\ubc14\ucf54\ub4dc \uc2a4\uce94',
-  camHint:'\ubc14\ucf54\ub4dc\ub97c \ud504\ub808\uc784 \uc548\uc5d0 \ub9de\ucdb0\uc8fc\uc138\uc694',
-  cancel:'\ucde8\uc18c',
-  scanning:'\uc2a4\uce94 \uc911...',
-  scanFail:'\ubc14\ucf54\ub4dc \uc778\uc2dd \uc2e4\ud328 - \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694',
-  camErr:'\uce74\uba54\ub77c\ub97c \uc5f4 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.\n\ube0c\ub77c\uc6b0\uc800 \uc124\uc815\uc5d0\uc11c \uce74\uba54\ub77c \uad8c\ud55c\uc744 \ud5c8\uc6a9\ud574\uc8fc\uc138\uc694.'
+  scan:'Scan', upload:'Upload', list:'List',
+  scanTitle:'Barcode / QR Scan',
+  scanSub:'Point the camera at the code',
+  camBtn:'Scan with camera',
+  camBtnIOS:'Take barcode photo',
+  orText:'or enter manually',
+  placeholder:'Bar-code / SKU / Package Code',
+  infoBox:'<strong>Excel format</strong> (1st sheet, header in row 1)<br>A: SKU/PART No.1<br>B: SKU/PART No.2<br>C: Package Code<br>D: Box bar-code (scanned code)<br>E: File name<br>F: File path (web link)',
+  uploadTitle:'Load a new Excel file',
+  uploadSub:'.xlsx file (this device only, until refresh)',
+  defaultFile:'data.xlsx', defaultMeta:'- items \u00b7 Active',
+  active:'Active', refresh:'Refresh',
+  searchPlaceholder:'Search SKU 1, SKU 2, Package Code, Bar-code',
+  total:'Total ', count:' items',
+  found:'Document found', foundMany:'documents found',
+  notfound:'No document found for this code',
+  openPdf:'Open PDF',
+  noResult:'No results',
+  loading:'Loading data...',
+  loadOk:' items loaded',
+  loadFail:'Load failed: ',
+  loadEmpty:'No data found. Please check the file.',
+  reading:'Reading file...',
+  camHeader:'Barcode Scan',
+  camHint:'Fit the barcode inside the frame',
+  cancel:'Cancel',
+  scanning:'Scanning...',
+  scanFail:'Could not read the barcode - please try again',
+  camErr:'Cannot open the camera.\nPlease allow camera access in your browser settings.',
+  tip:'Tip', tipText:'Center the barcode and make it fill the frame',
+  scanned:'Scanned',
+  lBox:'Bar-code', lSku1:'SKU 1', lSku2:'SKU 2', lPkg:'Pkg code', lFile:'File',
+  noFile:'No file is linked to this item.',
+  copyPath:'Copy path', copied:'Copied',
+  netPathNote:'Network path - it cannot be opened from a browser. Paste it into File Explorer on a PC connected to the company network.'
 };
 
 var DB = [];
@@ -238,37 +250,96 @@ function showTab(tab, el){
   if(tab==='list') renderList(DB);
 }
 
-function searchCode(code){
-  var q = (code!==undefined?code:document.getElementById('manualCode').value).trim();
-  if(!q) return;
-  var found = null;
-  for(var i=0;i<DB.length;i++){if(DB[i].code===q){found=DB[i];break;}}
-  var card = document.getElementById('resultCard');
+// TESTABLE-BEGIN-1
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function isUrl(p){return /^https?:\/\//i.test(p||'');}
+function baseName(p){var s=String(p||'').split(/[\\\/]/);return s[s.length-1]||'';}
+// Exact match (case-insensitive) on Box bar-code first, then SKU 1 / SKU 2 / Package Code
+function findMatches(q){
+  q=String(q==null?'':q).trim().toLowerCase();
+  if(!q) return [];
+  var byBox=[], byOther=[];
+  for(var i=0;i<DB.length;i++){
+    var d=DB[i];
+    if(d.box && d.box.toLowerCase()===q) byBox.push(d);
+    else if((d.sku1&&d.sku1.toLowerCase()===q)||(d.sku2&&d.sku2.toLowerCase()===q)||(d.pkg&&d.pkg.toLowerCase()===q)) byOther.push(d);
+  }
+  return byBox.length?byBox:byOther;
+}
+// TESTABLE-END-1
+
+function row(k,v,cls){
+  if(!v) return '';
+  return '<div class="result-row"><span class="rkey">'+k+'</span><span class="rval'+(cls?' '+cls:'')+'">'+esc(v)+'</span></div>';
+}
+
+function fileBlock(d){
+  if(!d.path) return '<div class="note-muted">'+T.noFile+'</div>';
+  if(isUrl(d.path)){
+    return '<button class="btn btn-green" onclick="openDoc('+d.i+')"><i class="ti ti-file-type-pdf"></i> '+T.openPdf+'</button>';
+  }
+  return '<div class="path-box">'+esc(d.path)+'</div>'+
+    '<button class="btn btn-outline" onclick="copyPath('+d.i+',this)"><i class="ti ti-copy"></i> '+T.copyPath+'</button>'+
+    '<div class="note-muted">'+T.netPathNote+'</div>';
+}
+
+function showResult(ms,q){
+  var card=document.getElementById('resultCard');
   card.style.display='block';
-  if(found){
+  document.getElementById('openBtnWrap').innerHTML='';
+  if(ms.length){
     card.className='result-card found';
     document.getElementById('resultIco').textContent='\u2713';
-    document.getElementById('resultStatus').textContent=T.found;
-    document.getElementById('resultDetail').innerHTML=
-      '<div class="result-row"><span class="rkey">'+T.barcode+'</span><span class="rval">'+found.code+'</span></div>'+
-      '<div class="result-row"><span class="rkey">'+T.docname+'</span><span class="rval highlight">'+found.name+'</span></div>';
-    document.getElementById('openBtnWrap').innerHTML=
-      '<button class="btn btn-green" onclick="openPDF(\''+found.url+'\')">'+
-      '<i class="ti ti-file-type-pdf"></i> '+T.openPdf+'</button>';
+    document.getElementById('resultStatus').textContent=ms.length===1?T.found:(ms.length+' '+T.foundMany);
+    var shown=ms.slice(0,20), html='';
+    for(var k=0;k<shown.length;k++){
+      var d=shown[k];
+      html+='<div class="match">'+row(T.lBox,d.box)+row(T.lSku1,d.sku1)+row(T.lSku2,d.sku2)+row(T.lPkg,d.pkg)+row(T.lFile,d.name,'highlight')+fileBlock(d)+'</div>';
+    }
+    document.getElementById('resultDetail').innerHTML=html;
   } else {
     card.className='result-card notfound';
     document.getElementById('resultIco').textContent='\u2717';
     document.getElementById('resultStatus').textContent=T.notfound;
-    document.getElementById('resultDetail').innerHTML=
-      '<div class="result-row"><span class="rkey">'+T.barcode+'</span><span class="rval">'+q+'</span></div>';
-    document.getElementById('openBtnWrap').innerHTML='';
+    document.getElementById('resultDetail').innerHTML=row(T.scanned,q);
   }
   card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function searchCode(code){
+  var q=(code!==undefined?code:document.getElementById('manualCode').value).trim();
+  if(!q) return;
+  showResult(findMatches(q),q);
+}
+
+function openDoc(i){
+  var d=DB[i];
+  if(d && isUrl(d.path)) openPDF(d.path);
 }
 
 function openPDF(url){
   if(isIOS){ window.location.href=url; }
   else { window.open(url,'_blank'); }
+}
+
+function fallbackCopy(t){
+  var ta=document.createElement('textarea');
+  ta.value=t; ta.style.cssText='position:fixed;top:-9999px;left:-9999px;';
+  document.body.appendChild(ta); ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+}
+
+function copyPath(i,btn){
+  var text=DB[i].path;
+  var orig=btn.innerHTML;
+  function done(){
+    btn.innerHTML='<i class="ti ti-check"></i> '+T.copied;
+    setTimeout(function(){btn.innerHTML=orig;},1500);
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done,function(){fallbackCopy(text);done();});
+  } else { fallbackCopy(text); done(); }
 }
 
 // ── 카메라 (Android / 일반 브라우저) ──
@@ -318,7 +389,7 @@ function buildCamUI(){
   var torchBtn=document.createElement('button');
   torchBtn.id='torchBtn';
   torchBtn.style.cssText=btnStyle;
-  torchBtn.innerHTML='<i class="ti ti-flashlight"></i> \ud50c\ub798\uc2dc';
+  torchBtn.innerHTML='<i class="ti ti-flashlight"></i> Flash';
   torchBtn.onclick=toggleTorch;
   var zoomWrap=document.createElement('div');
   zoomWrap.style.cssText='flex:2;display:flex;gap:6px;';
@@ -439,11 +510,11 @@ function toggleTorch(){
   torchOn=!torchOn;
   t.applyConstraints({advanced:[{torch:torchOn}]}).catch(function(){
     var btn=document.getElementById('torchBtn');
-    if(btn) btn.innerHTML='<i class="ti ti-flashlight-off"></i> \uc9c0\uc6d0\uc548\ub428';
+    if(btn) btn.innerHTML='<i class="ti ti-flashlight-off"></i> Not supported';
     torchOn=false;
   });
   var btn=document.getElementById('torchBtn');
-  if(btn) btn.innerHTML=torchOn?'<i class="ti ti-flashlight"></i> ON':'<i class="ti ti-flashlight"></i> \ud50c\ub798\uc2dc';
+  if(btn) btn.innerHTML=torchOn?'<i class="ti ti-flashlight"></i> ON':'<i class="ti ti-flashlight"></i> Flash';
 }
 
 function setZoom(z){
@@ -606,17 +677,14 @@ function decodeImage(img){
   if(decoded){
     document.getElementById('manualCode').value = decoded;
     searchCode(decoded);
-    var found = null;
-    for(var i=0;i<DB.length;i++){if(DB[i].code===decoded){found=DB[i];break;}}
-    if(found) setTimeout(function(){ window.location.href=found.url; }, 800);
+    var ms = findMatches(decoded);
+    if(ms.length===1 && isUrl(ms[0].path)) setTimeout(function(){ window.location.href=ms[0].path; }, 800);
   } else {
     var card = document.getElementById('resultCard');
     card.className = 'result-card notfound';
-    document.getElementById('resultIco').textContent = '✗';
+    document.getElementById('resultIco').textContent = '\u2717';
     document.getElementById('resultStatus').textContent = T.scanFail;
-    document.getElementById('resultDetail').innerHTML =
-      '<div class="result-row"><span class="rkey">팁</span>'+
-      '<span class="rval">바코드를 화면 중앙에 크게 배치 후 찍기</span></div>';
+    document.getElementById('resultDetail').innerHTML = row(T.tip, T.tipText);
   }
 }
 
@@ -631,44 +699,59 @@ function tryDecodeCanvas(ctx, w, h, reader){
   return null;
 }
 
-// ── 데이터 로드 ──
+// ── Data load ──
+// TESTABLE-BEGIN-2
+// Read one cell as text. Integers are converted exactly (no 4.0E+12 style rounding).
+function cellText(ws,r,c){
+  var cell=ws[XLSX.utils.encode_cell({r:r,c:c})];
+  if(!cell||cell.v===undefined||cell.v===null) return '';
+  if(cell.t==='n'){
+    if(Math.floor(cell.v)===cell.v && Math.abs(cell.v)<=9007199254740991) return String(cell.v);
+    return String(cell.w||cell.v).trim();
+  }
+  return String(cell.v).trim();
+}
+
+// Columns: A SKU/PART No.1 | B SKU/PART No.2 | C Package Code | D Box bar-code | E File name | F File path
+function parseWorkbook(buf){
+  var wb=XLSX.read(buf,{type:'array'});
+  var ws=wb.Sheets[wb.SheetNames[0]];
+  if(!ws||!ws['!ref']) return [];
+  var rng=XLSX.utils.decode_range(ws['!ref']);
+  var out=[];
+  for(var r=rng.s.r+1;r<=rng.e.r;r++){
+    var d={
+      sku1:cellText(ws,r,0), sku2:cellText(ws,r,1), pkg:cellText(ws,r,2),
+      box:cellText(ws,r,3), fname:cellText(ws,r,4), path:cellText(ws,r,5)
+    };
+    if(!d.sku1&&!d.sku2&&!d.pkg&&!d.box) continue;
+    d.name=d.fname||baseName(d.path)||d.box||d.sku1||d.sku2||d.pkg;
+    d.i=out.length;
+    out.push(d);
+  }
+  return out;
+}
+// TESTABLE-END-2
+
+function applyData(list){
+  DB=list;
+  var statusEl=document.getElementById('loadStatus');
+  if(DB.length){
+    if(statusEl) statusEl.textContent='\u2713 '+DB.length+T.loadOk;
+    document.getElementById('fileMeta').textContent=DB.length+T.count+' \u00b7 '+T.active;
+    renderList(DB);
+  } else {
+    if(statusEl) statusEl.textContent=T.loadEmpty;
+  }
+}
+
 function loadXLSX(){
   var statusEl=document.getElementById('loadStatus');
   if(statusEl) statusEl.textContent=T.loading;
   fetch(XLSX_URL+'?t='+Date.now())
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();})
-    .then(function(buf){
-      var wb=XLSX.read(buf,{type:'array',raw:false});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
-      var newDB=[];
-      for(var i=1;i<rows.length;i++){
-        var row=rows[i];
-        var rawCode=row[0];
-        if(rawCode===undefined||rawCode===null||rawCode==='') continue;
-        var code='';
-        if(typeof rawCode==='number'){
-          var cellAddr=XLSX.utils.encode_cell({r:i,c:0});
-          var cell=ws[cellAddr];
-          if(cell&&cell.w){code=cell.w.replace(/,/g,'').trim();}
-          else{try{code=BigInt(rawCode).toString();}catch(ex){code=Math.round(rawCode).toString();}}
-        } else {code=rawCode.toString().trim();}
-        if(!code) continue;
-        var name=(row[1]||'').toString().trim();
-        var url=(row[2]||'').toString().trim();
-        if(!url) continue;
-        newDB.push({code:code,name:name,url:url});
-      }
-      if(newDB.length>0){
-        DB=newDB;
-        if(statusEl) statusEl.textContent='\u2713 '+DB.length+T.loadOk;
-        document.getElementById('fileMeta').textContent=DB.length+T.count+' \u00b7 '+T.active;
-        document.getElementById('docCount').textContent=T.total+DB.length+T.count;
-        renderList(DB);
-      } else {
-        if(statusEl) statusEl.textContent='\ub370\uc774\ud130\uac00 \ube44\uc5b4\uc788\uc2b5\ub2c8\ub2e4.';
-      }
-    }).catch(function(e){if(statusEl) statusEl.textContent=T.loadFail+e.message;});
+    .then(function(buf){applyData(parseWorkbook(buf));})
+    .catch(function(e){if(statusEl) statusEl.textContent=T.loadFail+e.message;});
 }
 
 function handleFile(input){
@@ -676,65 +759,56 @@ function handleFile(input){
   if(!file) return;
   document.getElementById('fileName').textContent=file.name;
   var statusEl=document.getElementById('loadStatus');
-  if(statusEl) statusEl.textContent='\ud30c\uc77c \uc77d\ub294 \uc911...';
+  if(statusEl) statusEl.textContent=T.reading;
   var reader2=new FileReader();
   reader2.onload=function(e){
-    try{
-      var wb=XLSX.read(e.target.result,{type:'array',raw:true});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
-      var newDB=[];
-      for(var i=1;i<rows.length;i++){
-        var row=rows[i];
-        var rawCode=row[0];
-        if(!rawCode&&rawCode!==0) continue;
-        var code='';
-        if(typeof rawCode==='number'){
-          var cellAddr=XLSX.utils.encode_cell({r:i,c:0});
-          var cell=ws[cellAddr];
-          if(cell&&cell.w){code=cell.w.replace(/,/g,'').trim();}
-          else{try{code=BigInt(rawCode).toString();}catch(ex){code=Math.round(rawCode).toString();}}
-        } else {code=rawCode.toString().trim();}
-        var name=(row[1]||'').toString().trim();
-        var url=(row[2]||'').toString().trim();
-        if(!code||!url) continue;
-        newDB.push({code:code,name:name,url:url});
-      }
-      if(newDB.length>0){
-        DB=newDB;
-        if(statusEl) statusEl.textContent='\u2713 '+DB.length+T.loadOk;
-        document.getElementById('fileMeta').textContent=DB.length+T.count+' \u00b7 '+T.active;
-        renderList(DB);
-      }
-    }catch(ex){if(statusEl) statusEl.textContent=T.loadFail+ex.message;}
+    try{ applyData(parseWorkbook(e.target.result)); }
+    catch(ex){ if(statusEl) statusEl.textContent=T.loadFail+ex.message; }
   };
   reader2.readAsArrayBuffer(file);
+  input.value='';
+}
+
+function metaLine(d){
+  var p=[];
+  if(d.box) p.push(T.lBox+' '+d.box);
+  if(d.sku1) p.push(T.lSku1+' '+d.sku1);
+  if(d.sku2) p.push(T.lSku2+' '+d.sku2);
+  if(d.pkg) p.push(T.lPkg+' '+d.pkg);
+  return p.join(' \u00b7 ');
 }
 
 function renderList(data){
-  document.getElementById('docCount').textContent=T.total+data.length+T.count;
+  document.getElementById('docCount').textContent=
+    data.length===DB.length ? T.total+DB.length+T.count : data.length+' / '+DB.length+T.count;
   var el=document.getElementById('docList');
   if(!data.length){el.innerHTML='<div class="empty">'+T.noResult+'</div>';return;}
   var html='';
   for(var i=0;i<data.length;i++){
     var d=data[i];
-    html+='<div class="doc-row" onclick="goScan(\''+d.code+'\')">'+
+    html+='<div class="doc-row" onclick="goScan('+d.i+')">'+
       '<div class="doc-icon"><i class="ti ti-file-type-pdf"></i></div>'+
-      '<div class="doc-info"><p class="doc-name">'+d.name+'</p><p class="doc-code">'+d.code+'</p></div>'+
+      '<div class="doc-info"><p class="doc-name">'+esc(d.name)+'</p><p class="doc-code">'+esc(metaLine(d))+'</p></div>'+
       '<i class="ti ti-chevron-right" style="color:#90caf9;font-size:16px;flex-shrink:0;"></i></div>';
   }
   el.innerHTML=html;
 }
 
+// Search covers columns A-D (SKU/PART No.1, SKU/PART No.2, Package Code, Box bar-code)
 function filterList(q){
-  var filtered=q?DB.filter(function(d){return d.name.indexOf(q)>=0||d.code.indexOf(q)>=0;}):DB;
+  q=String(q||'').trim().toLowerCase();
+  var filtered=!q?DB:DB.filter(function(d){
+    return (d.sku1+'|'+d.sku2+'|'+d.pkg+'|'+d.box).toLowerCase().indexOf(q)>=0;
+  });
   renderList(filtered);
 }
 
-function goScan(code){
+function goScan(i){
+  var d=DB[i];
+  if(!d) return;
   showTab('scan',document.getElementById('tab-btn-scan'));
-  document.getElementById('manualCode').value=code;
-  searchCode(code);
+  document.getElementById('manualCode').value=d.box||d.sku1||d.sku2||d.pkg||'';
+  showResult([d],document.getElementById('manualCode').value);
 }
 
 initLabels();
