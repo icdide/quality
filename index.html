@@ -130,7 +130,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
       <div id="signOutBtn" onclick="signOut()">SIGN OUT</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.10</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.09</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -462,42 +462,21 @@ function startCamera(){
   });
 }
 
-// EAN-13 / EAN-8 / UPC-A check digit validation (other formats pass through)
-function checkDigitOK(val,fmt){
-  var n={ean_13:13,ean_8:8,upc_a:12}[fmt];
-  if(!n) return true;
-  if(!/^\d+$/.test(val)||val.length!==n) return false;
-  var sum=0;
-  for(var i=0;i<n-1;i++){
-    var d=+val.charAt(n-2-i);
-    sum+=d*((i%2===0)?3:1);
-  }
-  return ((10-(sum%10))%10)===+val.charAt(n-1);
-}
 function startScanning(v){
   if('BarcodeDetector' in window){
     var detector=new BarcodeDetector({formats:['qr_code','code_39','code_128','ean_13','ean_8','upc_a','upc_e','itf','data_matrix','codabar','code_93']});
-    // Accept a code only when the SAME value is read in several consecutive frames
-    // (and passes the check-digit test for EAN/UPC). Prevents blurry partial reads.
-    var lastVal=null, sameCount=0, NEED=3;
     function detect(){
       if(!streamActive) return;
       detector.detect(v).then(function(barcodes){
-        var good=null;
-        for(var i=0;i<barcodes.length;i++){
-          if(checkDigitOK(barcodes[i].rawValue,barcodes[i].format)){good=barcodes[i].rawValue;break;}
-        }
-        if(good){
-          if(good===lastVal) sameCount++; else {lastVal=good; sameCount=1;}
-        } else { lastVal=null; sameCount=0; }
-        if(good && sameCount>=NEED && streamActive){
+        if(barcodes.length>0&&streamActive){
           streamActive=false;
+          var code=barcodes[0].rawValue;
           if(navigator.vibrate) navigator.vibrate([100,50,100]);
           stopCamera();
-          document.getElementById('manualCode').value=good;
-          searchCode(good);
-        } else { if(streamActive) scanInterval=setTimeout(detect,120); }
-      }).catch(function(){if(streamActive) scanInterval=setTimeout(detect,120);});
+          document.getElementById('manualCode').value=code;
+          searchCode(code);
+        } else { if(streamActive) scanInterval=setTimeout(detect,150); }
+      }).catch(function(){if(streamActive) scanInterval=setTimeout(detect,150);});
     }
     detect(); return;
   }
