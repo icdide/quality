@@ -130,7 +130,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;ba
       <div class="hero-title">Q.A Cloud Bar-code Mapping</div>
       <div class="hero-since">EHWA DIAMOND / SINCE 1975</div>
       <div id="signOutBtn" onclick="signOut()">SIGN OUT</div>
-      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.08</div>
+      <div style="position:absolute;top:12px;right:14px;font-size:10px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:1px;z-index:3;">V1.09</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -272,6 +272,10 @@ function showTab(tab, el){
   if(tab==='list') renderList(DB);
 }
 
+// RGBA -> 8-bit gray (ZXing RGBLuminanceSource needs length w*h)
+function toGray(rgba,w,h){var g=new Uint8ClampedArray(w*h);
+  for(var i=0,p=0;i<g.length;i++,p+=4) g[i]=(rgba[p]*306+rgba[p+1]*601+rgba[p+2]*117)>>10;
+  return g;}
 // TESTABLE-BEGIN-1
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function isUrl(p){return /^https?:\/\//i.test(p||'');}
@@ -497,7 +501,7 @@ function startScanning(v){
       canvas.width=v.videoWidth;canvas.height=v.videoHeight;
       ctx.drawImage(v,0,0);
       var imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-      var lum=new ZXing.RGBLuminanceSource(imgData.data,canvas.width,canvas.height);
+      var lum=new ZXing.RGBLuminanceSource(toGray(imgData.data,canvas.width,canvas.height),canvas.width,canvas.height);
       var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
       var result=reader.decode(bmp);
       if(result&&streamActive){
@@ -711,14 +715,23 @@ function decodeImage(img){
 }
 
 function tryDecodeCanvas(ctx, w, h, reader){
-  try{
-    var imgData = ctx.getImageData(0,0,w,h);
-    var lum = new ZXing.RGBLuminanceSource(imgData.data,w,h);
-    var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
-    var result = reader.decode(bmp);
-    if(result) return result.getText();
-  }catch(e){}
-  return null;
+  var imgData;
+  try{ imgData = ctx.getImageData(0,0,w,h); }catch(e){ return null; }
+  var g = toGray(imgData.data,w,h);
+  function run(arr,ww,hh){
+    try{
+      var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.RGBLuminanceSource(arr,ww,hh)));
+      var res = reader.decode(bmp);
+      if(res) return res.getText();
+    }catch(e){}
+    return null;
+  }
+  var t = run(g,w,h);
+  if(t) return t;
+  // ZXing-js cannot read vertical 1D codes: retry rotated 90 degrees
+  var o = new Uint8ClampedArray(g.length);
+  for(var y=0;y<h;y++) for(var x=0;x<w;x++) o[x*h+(h-1-y)] = g[y*w+x];
+  return run(o,h,w);
 }
 
 // ── Data load ──
